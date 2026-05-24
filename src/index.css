@@ -11,7 +11,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 * {
@@ -27,99 +27,46 @@ html, body, #root {
 }
 
 body {
-  background-color: #FBF9F6;
-  color: #2C2A29;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  /* PCT.cream */
+  background-color: oklch(0.965 0.012 80);
+  color: oklch(0.215 0.018 60);
+  font-family: Newsreader, Georgia, serif;
   background-image:
-    radial-gradient(circle at 18% 12%, rgba(199, 212, 201, 0.45) 0%, transparent 38%),
-    radial-gradient(circle at 88% 88%, rgba(244, 240, 232, 0.7) 0%, transparent 45%);
+    radial-gradient(circle at 10% 6%,  oklch(0.86 0.045 50 / 0.4) 0%, transparent 38%),
+    radial-gradient(circle at 100% 95%, oklch(0.88 0.030 110 / 0.4) 0%, transparent 40%);
   background-attachment: fixed;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #121614;
-    color: #FBF9F6;
-    background-image:
-      radial-gradient(circle at 18% 12%, rgba(56, 78, 65, 0.5) 0%, transparent 42%),
-      radial-gradient(circle at 88% 88%, rgba(30, 35, 32, 0.7) 0%, transparent 50%);
-  }
-}
-
-/* Hydration bar gradient — refined */
-.hydration-bar-fill {
-  background: linear-gradient(90deg, #C25A4A 0%, #D4A574 45%, #5F7D6B 100%);
-  transition: width 0.9s cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-/* Scrollbar hiding */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-/* Glass surface — paint backdrop for blur to work over the warm bg */
-.glass {
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 8px 32px -8px rgba(60, 50, 40, 0.12), 0 2px 8px -4px rgba(60, 50, 40, 0.06);
-}
-@media (prefers-color-scheme: dark) {
-  .glass {
-    background: rgba(30, 35, 32, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.5), 0 2px 8px -4px rgba(0, 0, 0, 0.3);
-  }
-}
-
-.glass-strong {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 12px 40px -8px rgba(60, 50, 40, 0.18), 0 4px 12px -4px rgba(60, 50, 40, 0.1);
-}
-@media (prefers-color-scheme: dark) {
-  .glass-strong {
-    background: rgba(40, 47, 42, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.6), 0 4px 12px -4px rgba(0, 0, 0, 0.4);
-  }
-}
-
-/* Subtle inset highlight on glass cards */
-.glass::before, .glass-strong::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 30%);
-  pointer-events: none;
-  opacity: 0.8;
-}
-@media (prefers-color-scheme: dark) {
-  .glass::before, .glass-strong::before {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 30%);
-  }
-}
-
-/* Apple-style focus ring */
-input:focus-visible, button:focus-visible {
-  outline: 2px solid #5F7D6B;
+/* Apple-style focus ring in terracotta */
+input:focus-visible, button:focus-visible, [role="button"]:focus-visible {
+  outline: 2px solid oklch(0.62 0.115 42);
   outline-offset: 2px;
+  border-radius: 6px;
 }
 
-/* iOS-feel number input — remove spinners */
+/* Hide spinners on number inputs */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-input[type='number'] {
-  -moz-appearance: textfield;
+input[type='number'] { -moz-appearance: textfield; }
+
+/* Hide scrollbar but keep scrollable */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Backdrop-blur for the floating tab bar / nav glass */
+.glass-cream {
+  background: rgba(255, 251, 243, 0.86);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
+.glass-dark-tint {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Wave/meter helpers — combine with animate-wave-front / animate-wave-back utilities */
+.will-change-transform { will-change: transform; }

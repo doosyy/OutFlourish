@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { App as CapApp } from '@capacitor/app'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import { usePlantStore } from './store'
+import { useStore } from './store'
 import HomeScreen from './HomeScreen'
 import PlantDetail from './PlantDetail'
 import AddPlantScreen from './AddPlantScreen'
@@ -37,12 +37,12 @@ const router = createHashRouter([
 ])
 
 export default function App() {
-  const { loadPlants, processNFCScan, setPendingNfcWrite, pendingConfirm, confirmPendingWater, cancelPendingWater } =
-    usePlantStore()
+  const { load, processNFCScan, setPendingNfcWrite, pendingConfirm, confirmPendingWater, cancelPendingWater } =
+    useStore()
 
   useEffect(() => {
-    loadPlants()
-  }, [loadPlants])
+    load()
+  }, [load])
 
   // Deep link: plantcare://water?id=plant_123
   useEffect(() => {
@@ -115,32 +115,32 @@ export default function App() {
     <>
       <RouterProvider router={router} />
 
-      {/* Confirmation modal — bottom sheet */}
+      {/* Already-watered confirmation — placeholder until Phase 3 builds the AlreadyWateredSheet */}
       {pendingConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 backdrop-blur-sm animate-toast-in"
           style={{ paddingBottom: 'var(--sab)' }}
         >
-          <div className="w-full max-w-lg bg-stone-900 rounded-t-3xl p-6 shadow-2xl border-t border-stone-700">
-            <div className="w-12 h-1.5 bg-stone-600 rounded-full mx-auto mb-5" />
-            <h2 className="text-xl font-bold text-stone-50 mb-2">Already watered recently</h2>
-            <p className="text-stone-400 mb-6">
-              This plant was watered{' '}
-              <span className="text-amber-400 font-semibold">{pendingConfirm.hoursAgo}h ago</span>.
-              {' '}Log another watering entry anyway?
+          <div className="w-full max-w-lg bg-cream rounded-t-sheet p-7 shadow-sheet animate-sheet-up">
+            <div className="w-12 h-1 bg-ink/20 rounded-full mx-auto mb-5" />
+            <h2 className="font-display text-3xl text-ink mb-3 tracking-tighter">Already watered recently</h2>
+            <p className="font-body text-ink-soft mb-6 leading-relaxed">
+              This plant had a drink{' '}
+              <span className="text-terracotta-deep italic font-display">{pendingConfirm.hoursAgo} hours ago</span>.
+              {' '}Log another watering anyway?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={cancelPendingWater}
-                className="flex-1 py-3 rounded-2xl bg-stone-800 text-stone-300 font-semibold text-base active:scale-95 transition-transform"
+                className="flex-1 py-4 rounded-btn bg-paper text-ink-soft font-display italic text-lg"
               >
-                Cancel
+                Never mind
               </button>
               <button
                 onClick={confirmPendingWater}
-                className="flex-1 py-3 rounded-2xl bg-green-500 text-white font-semibold text-base active:scale-95 transition-transform"
+                className="flex-1 py-4 rounded-btn bg-terracotta text-cream font-display italic text-lg shadow-cta-sm"
               >
-                Log Anyway
+                Log anyway
               </button>
             </div>
           </div>
