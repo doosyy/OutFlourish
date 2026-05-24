@@ -1,15 +1,18 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { App as CapApp } from '@capacitor/app'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import { useStore } from './store'
+import { useStore, type Plant } from './store'
 import HomeScreen from './HomeScreen'
 import PlantDetail from './PlantDetail'
 import AddPlantScreen from './AddPlantScreen'
 import SettingsScreen from './SettingsScreen'
+import PrivacyPolicy from './PrivacyPolicy'
+import Onboarding from './Onboarding'
+import NfcMoment from './NfcMoment'
+import { AlreadyWateredSheet, Toast } from './sheets'
 
 // NFC is sponsorware — import dynamically to avoid build errors if not installed
-// Replace with: import { Nfc, NfcUtils } from '@capawesome-team/capacitor-nfc'
 let Nfc: { addListener: Function; startScanSession: Function; stopScanSession: Function } | null = null
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -18,7 +21,6 @@ try {
   // NFC plugin not installed — NFC features disabled
 }
 
-// Decode NDEF Text record payload (skip language code prefix)
 function parsePlantIdFromNdefPayload(payload: number[]): string | null {
   if (!payload || payload.length < 3) return null
   const langCodeLen = payload[0] & 0x3f
@@ -34,29 +36,38 @@ const router = createHashRouter([
   { path: '/plant/:id', element: <PlantDetail /> },
   { path: '/add', element: <AddPlantScreen /> },
   { path: '/settings', element: <SettingsScreen /> },
+  { path: '/privacy', element: <PrivacyPolicy /> },
 ])
 
 export default function App() {
-  const { load, processNFCScan, setPendingNfcWrite, pendingConfirm, confirmPendingWater, cancelPendingWater } =
-    useStore()
+  const {
+    load, plants, settings, isLoaded, completeOnboarding,
+    processNFCScan, setPendingNfcWrite,
+    pendingConfirm, confirmPendingWater, cancelPendingWater,
+    lastWaterAction, undoLastWater, clearLastWaterAction,
+  } = useStore()
+
+  // Full-screen NFC moment animation (when user successfully scans paired tag)
+  const [nfcMomentPlant, setNfcMomentPlant] = useState<Plant | null>(null)
 
   useEffect(() => {
     load()
   }, [load])
 
-  // Deep link: plantcare://water?id=plant_123
+  // Deep link: outflourish://water?id=plant_123  (also accepts plantcare://)
   useEffect(() => {
     const handle = CapApp.addListener('appUrlOpen', ({ url }) => {
       try {
         const parsed = new URL(url)
         if (parsed.hostname === 'water') {
           const id = parsed.searchParams.get('id')
-          if (id) processNFCScan(id)
+          if (id) handleNfcScan(id)
         }
       } catch { /* malformed URL */ }
     })
     return () => { handle.then(h => h.remove()) }
-  }, [processNFCScan])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Local notification tap → navigate to plant detail
   useEffect(() => {
@@ -80,21 +91,17 @@ export default function App() {
           for (const record of records) {
             const plantId = parsePlantIdFromNdefPayload(Array.from(record.payload as unknown as ArrayLike<number>))
             if (plantId) {
-              processNFCScan(plantId)
+              handleNfcScan(plantId)
               handled = true
               break
             }
           }
           if (!handled) {
-            // Unlinked tag → go to add plant flow
             setPendingNfcWrite(true)
             router.navigate('/add')
           }
-          // Restart session for next scan
           nfcSessionActive = false
-          try {
-            await Nfc!.stopScanSession()
-          } catch { /* already stopped */ }
+          try { await Nfc!.stopScanSession() } catch { /* already stopped */ }
           await startNfcSession()
         })
         await startNfcSession()
@@ -109,42 +116,72 @@ export default function App() {
         nfcSessionActive = false
       }
     }
-  }, [processNFCScan, setPendingNfcWrite])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Decide whether a paired-tag scan opens the NFC moment animation OR the
+  // already-watered overlay. processNFCScan handles the <12h logic.
+  function handleNfcScan(plantId: string) {
+    const plant = useStore.getState().plants.find(p => p.id === plantId)
+    if (!plant) {
+      // Unknown tag — Phase 3: open ErrorSheet kind=tag-unknown
+      return
+    }
+    const lastWatered = plant.history
+      .filter(e => e.type === 'water')
+      .sort((a, b) => b.timestamp - a.timestamp)[0]?.timestamp
+    if (lastWatered && Date.now() - lastWatered < 12 * 3_600_000) {
+      processNFCScan(plantId)
+    } else {
+      // Long-form moment — auto-logs during the watering phase
+      setNfcMomentPlant(plant)
+    }
+  }
+
+  const confirmPlant = pendingConfirm
+    ? plants.find(p => p.id === pendingConfirm.plantId)
+    : null
 
   return (
     <>
       <RouterProvider router={router} />
 
-      {/* Already-watered confirmation — placeholder until Phase 3 builds the AlreadyWateredSheet */}
-      {pendingConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 backdrop-blur-sm animate-toast-in"
-          style={{ paddingBottom: 'var(--sab)' }}
-        >
-          <div className="w-full max-w-lg bg-cream rounded-t-sheet p-7 shadow-sheet animate-sheet-up">
-            <div className="w-12 h-1 bg-ink/20 rounded-full mx-auto mb-5" />
-            <h2 className="font-display text-3xl text-ink mb-3 tracking-tighter">Already watered recently</h2>
-            <p className="font-body text-ink-soft mb-6 leading-relaxed">
-              This plant had a drink{' '}
-              <span className="text-terracotta-deep italic font-display">{pendingConfirm.hoursAgo} hours ago</span>.
-              {' '}Log another watering anyway?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={cancelPendingWater}
-                className="flex-1 py-4 rounded-btn bg-paper text-ink-soft font-display italic text-lg"
-              >
-                Never mind
-              </button>
-              <button
-                onClick={confirmPendingWater}
-                className="flex-1 py-4 rounded-btn bg-terracotta text-cream font-display italic text-lg shadow-cta-sm"
-              >
-                Log anyway
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Onboarding — first launch only */}
+      {isLoaded && !settings.onboardingComplete && (
+        <Onboarding onFinish={async ({ hemisphere, region }) => {
+          await completeOnboarding({ hemisphere, region })
+        }} />
+      )}
+
+      {/* Already-watered confirmation */}
+      {pendingConfirm && confirmPlant && (
+        <AlreadyWateredSheet
+          plant={confirmPlant}
+          hoursAgo={pendingConfirm.hoursAgo}
+          onConfirm={confirmPendingWater}
+          onCancel={cancelPendingWater}
+        />
+      )}
+
+      {/* NFC moment — full-screen reveal + watering animation */}
+      {nfcMomentPlant && (
+        <NfcMoment
+          plant={nfcMomentPlant}
+          onComplete={() => {
+            setNfcMomentPlant(null)
+            router.navigate(`/plant/${nfcMomentPlant.id}`)
+          }}
+        />
+      )}
+
+      {/* Watering-logged toast with undo */}
+      {lastWaterAction && (
+        <Toast
+          kicker={`Logged · ${new Date(lastWaterAction.timestamp).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }).toLowerCase()}`}
+          message={`${lastWaterAction.plantName} got ${lastWaterAction.amountMl} ml.`}
+          onUndo={async () => { await undoLastWater() }}
+          onDismiss={clearLastWaterAction}
+        />
       )}
     </>
   )

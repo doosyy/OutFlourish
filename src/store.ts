@@ -409,6 +409,15 @@ async function scheduleNotifications(plants: Plant[], opts: DueOptions): Promise
 
 // ─── Store ───────────────────────────────────────────────────────────────────
 
+/** Tracks the most recent watering so the Toast can offer Undo. */
+export interface LastWaterAction {
+  plantId: string
+  plantName: string
+  entryId: string
+  amountMl: number
+  timestamp: number
+}
+
 interface AppStore {
   plants: Plant[]
   rooms: Room[]
@@ -416,6 +425,7 @@ interface AppStore {
   isLoaded: boolean
   pendingConfirm: PendingConfirm | null
   pendingNfcWrite: boolean
+  lastWaterAction: LastWaterAction | null
 
   // bootstrap
   load: () => Promise<void>
@@ -425,6 +435,8 @@ interface AppStore {
   updatePlant: (id: string, data: Partial<Omit<Plant, 'id' | 'history' | 'createdAt'>>) => Promise<void>
   deletePlant: (id: string) => Promise<void>
   logWater: (plantId: string, type?: WaterLog['type'], opts?: { amountMl?: number; note?: string }) => Promise<void>
+  undoLastWater: () => Promise<void>
+  clearLastWaterAction: () => void
 
   // rooms
   addRoom: (data: Omit<Room, 'id'>) => Promise<Room>
@@ -474,6 +486,7 @@ export const useStore = create<AppStore>()((set, get) => ({
   isLoaded: false,
   pendingConfirm: null,
   pendingNfcWrite: false,
+  lastWaterAction: null,
 
   load: async () => {
     try { await Badge.requestPermissions() } catch { /* web/simulator */ }
@@ -528,13 +541,31 @@ export const useStore = create<AppStore>()((set, get) => ({
     const plants = get().plants.map(p =>
       p.id === plantId ? { ...p, history: [entry, ...p.history] } : p,
     )
-    set({ plants })
+    const lastWaterAction: LastWaterAction | null = type === 'water'
+      ? { plantId, plantName: target.name, entryId: entry.id, amountMl: entry.amountMl ?? 0, timestamp: entry.timestamp }
+      : get().lastWaterAction
+    set({ plants, lastWaterAction })
     await Repository.savePlants(plants)
     await updateAll({ ...get(), plants })
     if (type === 'water') {
       try { await Haptics.impact({ style: ImpactStyle.Medium }) } catch { /* web */ }
     }
   },
+
+  undoLastWater: async () => {
+    const action = get().lastWaterAction
+    if (!action) return
+    const plants = get().plants.map(p =>
+      p.id === action.plantId
+        ? { ...p, history: p.history.filter(e => e.id !== action.entryId) }
+        : p
+    )
+    set({ plants, lastWaterAction: null })
+    await Repository.savePlants(plants)
+    await updateAll({ ...get(), plants })
+  },
+
+  clearLastWaterAction: () => set({ lastWaterAction: null }),
 
   // ─── rooms ──────────────────────────────────────────────────────────────
   addRoom: async (data) => {
