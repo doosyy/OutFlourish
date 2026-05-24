@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light dark;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+body {
+  background-color: #FBF9F6;
+  color: #2C2A29;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(199, 212, 201, 0.45) 0%, transparent 38%),
+    radial-gradient(circle at 88% 88%, rgba(244, 240, 232, 0.7) 0%, transparent 45%);
+  background-attachment: fixed;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #121614;
+    color: #FBF9F6;
+    background-image:
+      radial-gradient(circle at 18% 12%, rgba(56, 78, 65, 0.5) 0%, transparent 42%),
+      radial-gradient(circle at 88% 88%, rgba(30, 35, 32, 0.7) 0%, transparent 50%);
+  }
+}
+
+/* Hydration bar gradient — refined */
+.hydration-bar-fill {
+  background: linear-gradient(90deg, #C25A4A 0%, #D4A574 45%, #5F7D6B 100%);
+  transition: width 0.9s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Scrollbar hiding */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Glass surface — paint backdrop for blur to work over the warm bg */
+.glass {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px -8px rgba(60, 50, 40, 0.12), 0 2px 8px -4px rgba(60, 50, 40, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(30, 35, 32, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.5), 0 2px 8px -4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 12px 40px -8px rgba(60, 50, 40, 0.18), 0 4px 12px -4px rgba(60, 50, 40, 0.1);
+}
+@media (prefers-color-scheme: dark) {
+  .glass-strong {
+    background: rgba(40, 47, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.6), 0 4px 12px -4px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Subtle inset highlight on glass cards */
+.glass::before, .glass-strong::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 30%);
+  pointer-events: none;
+  opacity: 0.8;
+}
+@media (prefers-color-scheme: dark) {
+  .glass::before, .glass-strong::before {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 30%);
+  }
+}
+
+/* Apple-style focus ring */
+input:focus-visible, button:focus-visible {
+  outline: 2px solid #5F7D6B;
+  outline-offset: 2px;
+}
+
+/* iOS-feel number input — remove spinners */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
