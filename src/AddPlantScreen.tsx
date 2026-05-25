@@ -149,7 +149,7 @@ export default function AddPlantScreen() {
           fontFamily: 'ui-monospace, "SF Mono", monospace',
           fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
           color: PCT.terracotta, marginBottom: 6,
-        }}>The library · {results.length === 0 ? 'no matches' : `${results.length} of 6 species`}</div>
+        }}>The library · {results.length === 0 ? 'no matches' : `${results.length} ${results.length === 1 ? 'match' : 'matches'}`}</div>
         <h1 style={{
           margin: 0,
           fontFamily: '"DM Serif Display", Georgia, serif',
