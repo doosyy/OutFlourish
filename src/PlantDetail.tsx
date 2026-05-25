@@ -3,7 +3,7 @@
 // → primary water CTA → secondary actions → care guide accordion → diary
 // timeline → quiet edit/compost footer → "Back to the garden" pill.
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   useStore,
@@ -15,6 +15,7 @@ import {
   getLastWateredLabel,
   getTotalWaterMl,
   getWaterCount,
+  getSeasonMultiplier,
   type Plant,
   type WaterLog,
 } from './store'
@@ -23,6 +24,8 @@ import { getSpeciesById } from './speciesDb'
 import PlantPhotoMeter from './components/PlantPhotoMeter'
 import HydrationSparkline from './components/HydrationSparkline'
 import { AccordionRow, GlassCircle, FormField } from './components/UI'
+import PhotoPicker from './components/PhotoPicker'
+import { WateringSheet } from './sheets'
 import {
   ChevronGlyph, EditGlyph, DotsGlyph, DropGlyph, FoodGlyph, RepotGlyph,
   SunGlyph, SeasonGlyph, TroubleGlyph,
@@ -43,8 +46,27 @@ const LOG_LABEL: Record<WaterLog['type'], string> = {
 export default function PlantDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { plants, rooms, settings, logWater } = useStore()
+  const { plants, rooms, settings, logWater, deletePlant } = useStore()
   const [showEdit, setShowEdit] = useState(false)
+  const [showCompost, setShowCompost] = useState(false)
+  const [showWateringSheet, setShowWateringSheet] = useState(false)
+
+  // Long-press detection on Water button
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressTriggered = useRef(false)
+  const startLongPress = () => {
+    longPressTriggered.current = false
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true
+      setShowWateringSheet(true)
+    }, 500)
+  }
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
 
   const plant = plants.find(p => p.id === id)
   if (!plant) {
@@ -217,8 +239,10 @@ export default function PlantDetail() {
           <h1 style={{
             margin: 0,
             fontFamily: '"DM Serif Display", Georgia, serif',
-            fontSize: 52, lineHeight: 0.95, fontWeight: 400,
+            fontSize: plant.name.length > 22 ? 38 : plant.name.length > 14 ? 44 : 52,
+            lineHeight: 0.95, fontWeight: 400,
             letterSpacing: '-0.025em', color: PCT.ink,
+            wordBreak: 'break-word',
           }}>{plant.name}</h1>
           {plant.species && (
             <div className="mt-1.5" style={{
@@ -276,9 +300,15 @@ export default function PlantDetail() {
 
         {/* Vitals 2x2 */}
         <div className="grid grid-cols-2 gap-2 mb-4.5">
-          <VitalCard label="Last watered"
-            value={getLastWatered(plant) === null ? 'Never' : getLastWateredLabel(plant).replace(' ago', '')}
-            subtle={getLastWatered(plant) === null ? undefined : 'ago'} />
+          {(() => {
+            const last = getLastWatered(plant)
+            if (last === null) return <VitalCard label="Last watered" value="Never" />
+            const raw = getLastWateredLabel(plant)
+            const hasAgo = raw.endsWith(' ago')
+            return <VitalCard label="Last watered"
+              value={hasAgo ? raw.replace(' ago', '') : raw}
+              subtle={hasAgo ? 'ago' : undefined} />
+          })()}
           <VitalCard label="Next due"
             value={dueLabel.replace('Due in ', '').replace('Due ', '')}
             accent={accent} />
@@ -298,10 +328,18 @@ export default function PlantDetail() {
           />
         )}
 
-        {/* Primary CTA */}
+        {/* Primary CTA — tap = log recommended; long-press = open WateringSheet */}
         <button
-          onClick={() => logWater(plant.id, 'water')}
-          className="w-full flex items-center justify-center gap-3"
+          onClick={() => {
+            if (longPressTriggered.current) return
+            logWater(plant.id, 'water')
+          }}
+          onPointerDown={startLongPress}
+          onPointerUp={cancelLongPress}
+          onPointerLeave={cancelLongPress}
+          onPointerCancel={cancelLongPress}
+          onContextMenu={e => e.preventDefault()}
+          className="w-full flex items-center justify-center gap-3 select-none"
           style={{
             padding: '18px 22px',
             background: PCT.terracotta,
@@ -310,11 +348,17 @@ export default function PlantDetail() {
             fontFamily: '"DM Serif Display", Georgia, serif',
             fontSize: 22, fontStyle: 'italic',
             boxShadow: '0 12px 28px rgba(165,78,38,0.32), inset 0 1px 0 rgba(255,255,255,0.18)',
+            touchAction: 'manipulation',
           }}
         >
           <DropGlyph color={PCT.cream} size={18} />
           Water {plant.name} · {plant.recommendedMl} ml
         </button>
+        <div className="text-center mt-2" style={{
+          fontFamily: 'ui-monospace, "SF Mono", monospace',
+          fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase',
+          color: PCT.inkFaint,
+        }}>· hold to choose a different amount ·</div>
 
         <div className="grid grid-cols-2 gap-2.5 mt-2.5">
           <SecondaryAction
@@ -400,16 +444,42 @@ export default function PlantDetail() {
           </button>
           <span style={{ color: PCT.inkFaint }}>·</span>
           <button
-            onClick={() => setShowEdit(true)}
+            onClick={() => setShowCompost(true)}
             style={{ color: PCT.thirsty, padding: '4px 6px' }}
           >
             Send to compost
           </button>
         </div>
+
+        {/* Compost confirm overlay */}
+        {showCompost && (
+          <CompostConfirm
+            plant={plant}
+            onConfirm={async () => {
+              await deletePlant(plant.id)
+              navigate('/', { replace: true })
+            }}
+            onCancel={() => setShowCompost(false)}
+          />
+        )}
       </div>
 
       {/* Floating "Back to the garden" pill */}
       <BackToGardenPill onClick={() => navigate('/')} />
+
+      {/* Custom-amount watering sheet (long-press CTA) */}
+      {showWateringSheet && (
+        <WateringSheet
+          plant={plant}
+          initialMl={
+            settings.watering.seasonalDosing &&
+            getSeasonMultiplier(new Date(), settings.season.hemisphere) >= 2
+              ? plant.winterMl
+              : plant.recommendedMl
+          }
+          onClose={() => setShowWateringSheet(false)}
+        />
+      )}
     </div>
   )
 }
@@ -587,6 +657,85 @@ function BackToGardenPill({ onClick }: { onClick: () => void }) {
   )
 }
 
+// ─── CompostConfirm ─────────────────────────────────────────────────────────
+function CompostConfirm({ plant, onConfirm, onCancel }: {
+  plant: Plant; onConfirm: () => void; onCancel: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ background: 'rgba(35,18,10,0.55)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="w-full animate-sheet-up"
+        style={{
+          background: PCT.cream,
+          borderTopLeftRadius: 36,
+          borderTopRightRadius: 36,
+          padding: '28px 22px',
+          paddingBottom: 'max(28px, var(--sab))',
+          boxShadow: '0 -20px 60px rgba(0,0,0,0.32)',
+          maxWidth: 480,
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="text-center mb-6">
+          <div style={{
+            fontFamily: 'ui-monospace, "SF Mono", monospace',
+            fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
+            color: PCT.thirsty, marginBottom: 10,
+          }}>Are you sure</div>
+          <div style={{
+            fontFamily: '"DM Serif Display", Georgia, serif',
+            fontSize: 28, lineHeight: 1.05, color: PCT.ink, marginBottom: 8,
+          }}>
+            Send {plant.name} to compost?
+          </div>
+          <p style={{
+            fontFamily: 'Newsreader, Georgia, serif',
+            fontSize: 14, color: PCT.inkSoft, lineHeight: 1.5,
+          }}>
+            This removes {plant.name} and its entire diary from your garden. It cannot be undone.
+          </p>
+        </div>
+        <div className="flex gap-2.5">
+          <button
+            onClick={onCancel}
+            className="flex-1"
+            style={{
+              padding: '16px',
+              background: 'transparent',
+              border: `1px solid ${PCT.ink}22`,
+              borderRadius: 18,
+              fontFamily: '"DM Serif Display", Georgia, serif',
+              fontStyle: 'italic', fontSize: 17,
+              color: PCT.inkSoft,
+            }}
+          >
+            Keep it
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1"
+            style={{
+              padding: '16px',
+              background: PCT.thirsty,
+              color: PCT.cream,
+              borderRadius: 18,
+              fontFamily: '"DM Serif Display", Georgia, serif',
+              fontStyle: 'italic', fontSize: 17,
+              boxShadow: '0 8px 18px rgba(180,60,30,0.28)',
+            }}
+          >
+            Yes, compost it
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── EditPlantForm ──────────────────────────────────────────────────────────
 function EditPlantForm({ plant, existingRooms, onClose, onDelete }: {
   plant: Plant; existingRooms: string[]; onClose: () => void; onDelete: () => void
@@ -597,7 +746,13 @@ function EditPlantForm({ plant, existingRooms, onClose, onDelete }: {
   const [room, setRoom] = useState(plant.room ?? '')
   const [mood, setMood] = useState(plant.mood ?? '')
   const [interval, setInterval] = useState(plant.baseIntervalDays)
+  const [photo, setPhoto] = useState(plant.photo)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Species photo to revert to (falls back to existing photo if no species linked)
+  const speciesPhoto = plant.speciesId
+    ? getSpeciesById(plant.speciesId)?.photo ?? plant.photo
+    : plant.photo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -607,6 +762,7 @@ function EditPlantForm({ plant, existingRooms, onClose, onDelete }: {
       room: room.trim() || undefined,
       mood: mood.trim() || undefined,
       baseIntervalDays: interval,
+      photo,
     })
     onClose()
   }
@@ -629,6 +785,21 @@ function EditPlantForm({ plant, existingRooms, onClose, onDelete }: {
         fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
         color: PCT.terracotta,
       }}>Editing this plant</div>
+
+      <div className="flex items-center gap-3.5 mb-4">
+        <PhotoPicker
+          currentPhoto={photo}
+          speciesPhoto={speciesPhoto}
+          plantId={plant.id}
+          onChange={setPhoto}
+        />
+        <div style={{
+          fontFamily: 'Newsreader, Georgia, serif',
+          fontSize: 13, color: PCT.inkSoft, lineHeight: 1.4,
+        }}>
+          Tap to take or pick a new portrait.
+        </div>
+      </div>
 
       <FormField label="Nickname" value={name} onChange={setName} placeholder="What do you call them?" />
       <FormField label="Species" value={species} onChange={setSpecies} placeholder="Latin or common name" />

@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { WaterAllSheet } from './sheets'
 import {
   useStore,
   getDueState,
@@ -46,6 +47,7 @@ export default function HomeScreen() {
   const navigate = useNavigate()
   const { plants, rooms, settings, isLoaded } = useStore()
   const [now, setNow] = useState(Date.now())
+  const [showWaterAll, setShowWaterAll] = useState(false)
 
   // Tick once a minute so urgency labels stay fresh
   useEffect(() => {
@@ -120,7 +122,7 @@ export default function HomeScreen() {
       </div>
 
       {/* Terracotta summary widget */}
-      <SummaryWidget thirsty={thirsty} />
+      <SummaryWidget thirsty={thirsty} onWaterAll={() => setShowWaterAll(true)} />
 
       {/* Featured (most urgent) */}
       {thirsty.length > 0 && <FeaturedPlant plant={thirsty[0]} onClick={() => navigate(`/plant/${thirsty[0].id}`)} />}
@@ -175,12 +177,20 @@ export default function HomeScreen() {
 
       {/* Floating NFC pill */}
       <FloatingNfcPill />
+
+      {/* Water-all sheet */}
+      {showWaterAll && thirsty.length > 0 && (
+        <WaterAllSheet
+          plants={thirsty}
+          onClose={() => setShowWaterAll(false)}
+        />
+      )}
     </div>
   )
 }
 
 // ─── Summary widget ──────────────────────────────────────────────────────────
-function SummaryWidget({ thirsty }: { thirsty: AugmentedPlant[] }) {
+function SummaryWidget({ thirsty, onWaterAll }: { thirsty: AugmentedPlant[]; onWaterAll: () => void }) {
   const navigate = useNavigate()
   const count = thirsty.length
   return (
@@ -232,7 +242,7 @@ function SummaryWidget({ thirsty }: { thirsty: AugmentedPlant[] }) {
             primary
             icon={<DropGlyph color={PCT.terracottaDeep} size={14} />}
             label="Water all"
-            onClick={() => alert('Multi-select water-all sheet (Phase 3.7)')}
+            onClick={onWaterAll}
           />
           <QuickAction
             icon={<NFCGlyph color={PCT.cream} size={14} />}
@@ -334,7 +344,9 @@ function FeaturedPlant({ plant, onClick }: { plant: AugmentedPlant; onClick?: ()
         </div>
         <div style={{
           fontFamily: '"DM Serif Display", Georgia, serif',
-          fontSize: 34, lineHeight: 0.95, color: PCT.ink,
+          fontSize: plant.name.length > 18 ? 28 : 34, lineHeight: 0.95, color: PCT.ink,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          overflow: 'hidden', wordBreak: 'break-word',
         }}>{plant.name}</div>
         {plant.species && (
           <div className="mt-1" style={{
@@ -394,7 +406,7 @@ function AlmanacRow({ plant, highlight = false, onClick }: {
         size={52}
       />
       <div className="min-w-0">
-        <div style={{
+        <div className="truncate" style={{
           fontFamily: '"DM Serif Display", Georgia, serif',
           fontSize: 22, lineHeight: 1.0, color: PCT.ink,
         }}>{plant.name}</div>
@@ -436,12 +448,15 @@ function AlmanacRow({ plant, highlight = false, onClick }: {
 
 // ─── Floating "Hold to a plant tag" pill ─────────────────────────────────────
 function FloatingNfcPill() {
+  const setErrorSheet = useStore(s => s.setErrorSheet)
+  const hasNfc = typeof window !== 'undefined' && 'NDEFReader' in window
   return (
     <div
       className="fixed left-6 right-6 flex justify-center pointer-events-none z-10"
       style={{ bottom: 'max(50px, var(--sab))' }}
     >
-      <div
+      <button
+        onClick={() => { if (!hasNfc) setErrorSheet('nfc-unavailable') }}
         className="flex items-center gap-3 pointer-events-auto cursor-pointer"
         style={{
           background: PCT.ink,
@@ -455,7 +470,7 @@ function FloatingNfcPill() {
       >
         <NFCGlyph color={PCT.terracottaSoft} size={20} />
         Hold to a plant tag
-      </div>
+      </button>
     </div>
   )
 }
@@ -467,7 +482,7 @@ function HomeByRoom({ now, thirsty, sorted }: {
   sorted: AugmentedPlant[]
 }) {
   const navigate = useNavigate()
-  const { rooms, settings } = useStore()
+  const { rooms } = useStore()
   const grouped = rooms
     .map(room => ({ room, plants: sorted.filter(p => p.room === room.name) }))
     .filter(g => g.plants.length > 0)

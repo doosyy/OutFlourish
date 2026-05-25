@@ -8,9 +8,10 @@ import PlantDetail from './PlantDetail'
 import AddPlantScreen from './AddPlantScreen'
 import SettingsScreen from './SettingsScreen'
 import PrivacyPolicy from './PrivacyPolicy'
+import ManageRoomsScreen from './ManageRoomsScreen'
 import Onboarding from './Onboarding'
 import NfcMoment from './NfcMoment'
-import { AlreadyWateredSheet, Toast } from './sheets'
+import { AlreadyWateredSheet, Toast, ErrorSheet } from './sheets'
 
 // NFC is sponsorware — import dynamically to avoid build errors if not installed
 let Nfc: { addListener: Function; startScanSession: Function; stopScanSession: Function } | null = null
@@ -37,6 +38,7 @@ const router = createHashRouter([
   { path: '/add', element: <AddPlantScreen /> },
   { path: '/settings', element: <SettingsScreen /> },
   { path: '/privacy', element: <PrivacyPolicy /> },
+  { path: '/rooms', element: <ManageRoomsScreen /> },
 ])
 
 export default function App() {
@@ -45,6 +47,7 @@ export default function App() {
     processNFCScan, setPendingNfcWrite,
     pendingConfirm, confirmPendingWater, cancelPendingWater,
     lastWaterAction, undoLastWater, clearLastWaterAction,
+    errorSheet, setErrorSheet,
   } = useStore()
 
   // Full-screen NFC moment animation (when user successfully scans paired tag)
@@ -97,8 +100,8 @@ export default function App() {
             }
           }
           if (!handled) {
-            setPendingNfcWrite(true)
-            router.navigate('/add')
+            // Unknown tag — offer pair-existing or add-new via ErrorSheet
+            setErrorSheet('tag-unknown')
           }
           nfcSessionActive = false
           try { await Nfc!.stopScanSession() } catch { /* already stopped */ }
@@ -124,7 +127,7 @@ export default function App() {
   function handleNfcScan(plantId: string) {
     const plant = useStore.getState().plants.find(p => p.id === plantId)
     if (!plant) {
-      // Unknown tag — Phase 3: open ErrorSheet kind=tag-unknown
+      setErrorSheet('tag-unknown')
       return
     }
     const lastWatered = plant.history
@@ -170,6 +173,30 @@ export default function App() {
           onComplete={() => {
             setNfcMomentPlant(null)
             router.navigate(`/plant/${nfcMomentPlant.id}`)
+          }}
+        />
+      )}
+
+      {/* Error sheet — NFC + upload failures */}
+      {errorSheet && (
+        <ErrorSheet
+          kind={errorSheet}
+          onDismiss={() => setErrorSheet(null)}
+          onPrimary={() => {
+            const kind = errorSheet
+            setErrorSheet(null)
+            if (kind === 'tag-unknown' || kind === 'tag-write-failed') {
+              setPendingNfcWrite(true)
+              router.navigate('/add')
+            }
+            // 'nfc-unavailable' just dismisses
+            // 'upload-failed' caller passes its own handler — this fallback dismisses
+          }}
+          onSecondary={() => {
+            setErrorSheet(null)
+            // 'tag-unknown' secondary = "Pair existing" — TODO future picker
+            // 'tag-write-failed' secondary = "Skip pairing" — just dismiss
+            // 'upload-failed' secondary = "Use stock" — just dismiss
           }}
         />
       )}

@@ -2,7 +2,7 @@
 // Rendered as a full-screen overlay until settings.onboardingComplete = true.
 
 import { useState } from 'react'
-import { useStore, type Hemisphere } from './store'
+import { type Hemisphere } from './store'
 import { PCT } from './tokens'
 import { Wordmark, AppIconMark } from './components/Brand'
 import { NFCGlyph } from './components/Glyphs'
@@ -60,7 +60,14 @@ export default function Onboarding({ onFinish }: Props) {
         }}>Skip</button>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-7 text-center">
+      <div
+        className="flex-1 flex flex-col items-center px-7 text-center overflow-y-auto w-full"
+        style={{
+          paddingTop: step === 2 ? 56 : 0,
+          paddingBottom: 12,
+          justifyContent: step === 2 ? 'flex-start' : 'center',
+        }}
+      >
         {step === 0 && <Step0 />}
         {step === 1 && <Step1 />}
         {step === 2 && <Step2 region={region} onChange={setRegion} />}

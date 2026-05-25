@@ -19,11 +19,23 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+/* Lock the document — prevents WKWebView rubber-band bounce at the page level */
+html, body {
   margin: 0;
   padding: 0;
-  min-height: 100dvh;
-  overscroll-behavior: none;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* #root is the actual scroll container — confined scroll = no OS-level bounce */
+#root {
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -31,10 +43,15 @@ body {
   background-color: oklch(0.965 0.012 80);
   color: oklch(0.215 0.018 60);
   font-family: Newsreader, Georgia, serif;
+}
+
+/* Ambient gradient lives on #root so it stays fixed while the screen scrolls */
+#root {
+  background-color: oklch(0.965 0.012 80);
   background-image:
     radial-gradient(circle at 10% 6%,  oklch(0.86 0.045 50 / 0.4) 0%, transparent 38%),
     radial-gradient(circle at 100% 95%, oklch(0.88 0.030 110 / 0.4) 0%, transparent 40%);
-  background-attachment: fixed;
+  background-attachment: local;
 }
 
 /* Apple-style focus ring in terracotta */

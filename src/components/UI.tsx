@@ -329,7 +329,7 @@ export function FormField({
         )}
       </div>
       <input
-        ref={inputRef}
+        ref={inputRef as React.Ref<HTMLInputElement>}
         type={type}
         value={value}
         onChange={e => onChange?.(e.target.value)}

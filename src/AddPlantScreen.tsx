@@ -12,6 +12,7 @@ import { useStore } from './store'
 import { searchSpecies, type SpeciesProfile, type Difficulty } from './speciesDb'
 import { PCT } from './tokens'
 import { TopBar, Tag, FormField } from './components/UI'
+import PhotoPicker from './components/PhotoPicker'
 import { SearchGlyph, NFCGlyph } from './components/Glyphs'
 
 export default function AddPlantScreen() {
@@ -23,6 +24,8 @@ export default function AddPlantScreen() {
   const [room, setRoom] = useState(rooms[0]?.name ?? '')
   const [interval, setInterval] = useState(7)
   const [saving, setSaving] = useState(false)
+  const [photo, setPhoto] = useState('')   // empty = use selected.photo on save
+  const draftPlantId = useMemo(() => `plant_${Date.now()}`, [])
 
   const results = useMemo(() => searchSpecies(query), [query])
 
@@ -39,6 +42,7 @@ export default function AddPlantScreen() {
     setSelected(sp)
     setName(sp.name)
     setInterval(sp.baseIntervalDays)
+    setPhoto('')  // default to species photo
   }
 
   const handleSave = async () => {
@@ -48,7 +52,7 @@ export default function AddPlantScreen() {
       name: name.trim(),
       species: selected.name,
       speciesId: selected.id,
-      photo: selected.photo,
+      photo: photo || selected.photo,
       baseIntervalDays: interval,
       recommendedMl: selected.recommendedMl,
       winterMl: selected.winterMl,
@@ -66,12 +70,15 @@ export default function AddPlantScreen() {
         name={name}
         room={room}
         interval={interval}
+        photo={photo || selected.photo}
+        plantId={draftPlantId}
         existingRooms={rooms.map(r => r.name)}
         saving={saving}
         pendingNfcWrite={pendingNfcWrite}
         onNameChange={setName}
         onRoomChange={setRoom}
         onIntervalChange={setInterval}
+        onPhotoChange={setPhoto}
         onChangeSpecies={() => setSelected(null)}
         onBack={handleBack}
         onSave={handleSave}
@@ -281,20 +288,23 @@ interface FormProps {
   name: string
   room: string
   interval: number
+  photo: string
+  plantId: string
   existingRooms: string[]
   saving: boolean
   pendingNfcWrite: boolean
   onNameChange: (v: string) => void
   onRoomChange: (v: string) => void
   onIntervalChange: (v: number) => void
+  onPhotoChange: (v: string) => void
   onChangeSpecies: () => void
   onBack: () => void
   onSave: () => void
 }
 
 function AddPlantForm({
-  selected, name, room, interval, existingRooms, saving, pendingNfcWrite,
-  onNameChange, onRoomChange, onIntervalChange, onChangeSpecies, onBack, onSave,
+  selected, name, room, interval, photo, plantId, existingRooms, saving, pendingNfcWrite,
+  onNameChange, onRoomChange, onIntervalChange, onPhotoChange, onChangeSpecies, onBack, onSave,
 }: FormProps) {
   return (
     <div className="min-h-screen" style={{ background: PCT.cream, paddingBottom: 90 }}>
@@ -336,18 +346,12 @@ function AddPlantForm({
           border: `1px solid ${PCT.ink}14`,
           borderRadius: 22,
         }}>
-          <div className="relative flex-shrink-0" style={{
-            width: 64, height: 64, borderRadius: 18, overflow: 'hidden',
-          }}>
-            <div className="absolute inset-0" style={{
-              background: `linear-gradient(135deg, ${PCT.oliveSoft}, ${PCT.terracottaSoft})`,
-            }} />
-            {selected.photo && (
-              <img src={selected.photo} alt={selected.name} loading="lazy"
-                className="absolute inset-0 w-full h-full object-cover"
-                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-            )}
-          </div>
+          <PhotoPicker
+            currentPhoto={photo}
+            speciesPhoto={selected.photo}
+            plantId={plantId}
+            onChange={onPhotoChange}
+          />
           <div className="flex-1 min-w-0">
             <div style={{
               fontFamily: 'ui-monospace, "SF Mono", monospace',

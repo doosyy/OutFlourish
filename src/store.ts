@@ -246,7 +246,7 @@ export function getLastWatered(plant: Plant): number | null {
   return entries[0]?.timestamp ?? null
 }
 
-interface DueOptions {
+export interface DueOptions {
   now?: number
   hemisphere?: Hemisphere
   roomLight?: LightLevel
@@ -418,6 +418,8 @@ export interface LastWaterAction {
   timestamp: number
 }
 
+export type ErrorKind = 'tag-unknown' | 'tag-write-failed' | 'nfc-unavailable' | 'upload-failed'
+
 interface AppStore {
   plants: Plant[]
   rooms: Room[]
@@ -426,6 +428,8 @@ interface AppStore {
   pendingConfirm: PendingConfirm | null
   pendingNfcWrite: boolean
   lastWaterAction: LastWaterAction | null
+  errorSheet: ErrorKind | null
+  setErrorSheet: (kind: ErrorKind | null) => void
 
   // bootstrap
   load: () => Promise<void>
@@ -457,6 +461,7 @@ interface AppStore {
   // backup
   exportData: () => Promise<string>
   importData: (json: string) => Promise<void>
+  clearAll: () => Promise<void>
 
   // derived helper: room light lookup for a plant
   roomLightFor: (plant: Plant) => LightLevel | undefined
@@ -487,6 +492,8 @@ export const useStore = create<AppStore>()((set, get) => ({
   pendingConfirm: null,
   pendingNfcWrite: false,
   lastWaterAction: null,
+  errorSheet: null,
+  setErrorSheet: (kind) => set({ errorSheet: kind }),
 
   load: async () => {
     try { await Badge.requestPermissions() } catch { /* web/simulator */ }
@@ -709,6 +716,13 @@ export const useStore = create<AppStore>()((set, get) => ({
     }
 
     await updateAll(get())
+  },
+
+  clearAll: async () => {
+    set({ plants: [], rooms: [], settings: DEFAULT_SETTINGS })
+    await Repository.savePlants([])
+    await Repository.saveRooms([])
+    await Repository.saveSettings(DEFAULT_SETTINGS)
   },
 
   // ─── derived ────────────────────────────────────────────────────────────
