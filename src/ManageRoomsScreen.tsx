@@ -102,6 +102,15 @@ export default function ManageRoomsScreen() {
             <PlusGlyph color={PCT.terracotta} size={16} />
             Add a room
           </button>
+
+          <div className="text-center mt-9" style={{
+            fontFamily: '"DM Serif Display", Georgia, serif',
+            fontStyle: 'italic', fontSize: 14, color: PCT.inkFaint,
+            lineHeight: 1.5, padding: '0 32px',
+          }}>
+            A room is just a label and a light level.<br />
+            Move plants between rooms from each plant's detail.
+          </div>
         </div>
       )}
     </div>

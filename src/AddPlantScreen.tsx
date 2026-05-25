@@ -12,7 +12,7 @@ import { NFC } from '@exxili/capacitor-nfc'
 import { useStore } from './store'
 import { searchSpecies, type SpeciesProfile, type Difficulty } from './speciesDb'
 import { PCT } from './tokens'
-import { TopBar, Tag, FormField } from './components/UI'
+import { TopBar, FormField } from './components/UI'
 import PhotoPicker from './components/PhotoPicker'
 import { SearchGlyph, NFCGlyph } from './components/Glyphs'
 
@@ -284,10 +284,16 @@ function SpeciesRow({ species, onSelect }: { species: SpeciesProfile; onSelect: 
           fontFamily: '"DM Serif Display", Georgia, serif',
           fontStyle: 'italic', fontSize: 13, color: PCT.inkSoft,
         }}>{species.scientificName}</div>
-        <div className="flex gap-2 mt-1.5 items-center flex-wrap">
-          <Tag tone={diffColor[species.difficulty]}>{species.difficulty}</Tag>
-          <Tag tone={PCT.inkFaint}>{species.humidity} humidity</Tag>
-          {species.toxic && <Tag tone={PCT.thirsty}>toxic</Tag>}
+        <div className="mt-1.5" style={{
+          fontFamily: 'ui-monospace, "SF Mono", monospace',
+          fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase',
+          color: PCT.inkFaint,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          <span style={{ color: diffColor[species.difficulty] }}>{species.difficulty}</span>
+          {' · '}
+          {species.humidity} humidity
+          {species.toxic && <>{' · '}<span style={{ color: PCT.thirsty }}>toxic</span></>}
         </div>
       </div>
       <div className="text-right flex-shrink-0">

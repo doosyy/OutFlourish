@@ -54,7 +54,7 @@ export default function HydrationSparkline({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
         <defs>
           <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor={fill} stopOpacity="0.4" />

@@ -323,7 +323,7 @@ function FeaturedPlant({ plant, onClick }: { plant: AugmentedPlant; onClick?: ()
   return (
     <button
       onClick={onClick}
-      className="grid items-center w-full text-left"
+      className="grid items-start w-full text-left"
       style={{
         gridTemplateColumns: '1fr 124px',
         gap: 18,

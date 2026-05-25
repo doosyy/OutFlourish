@@ -217,7 +217,7 @@ export default function SettingsScreen() {
 
       {/* Household */}
       <Group title="Household">
-        <Row label="Pet mode" hint="Surface toxicity warnings prominently on plant detail."
+        <Row label="Pet mode" hint="Highlight toxic species on plant detail."
           control={<Toggle on={settings.household.petMode}
             onChange={v => updateSettings({ household: { ...settings.household, petMode: v } })} />} />
         <Row label="Child mode" hint="Adds warnings for children-toxic species."
