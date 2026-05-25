@@ -334,11 +334,12 @@ function FeaturedPlant({ plant, onClick }: { plant: AugmentedPlant; onClick?: ()
         width: 'calc(100% - 56px)',
       }}
     >
-      <div>
+      <div className="min-w-0">
         <div style={{
           fontFamily: 'ui-monospace, "SF Mono", monospace',
-          fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
+          fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
           color: accentFor(plant.hydration), marginBottom: 8,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           · {plant.dueState === 'overdue' ? 'Overdue' : 'Due soon'} · {plant.room ?? 'Unsited'}
         </div>
@@ -422,6 +423,7 @@ function AlmanacRow({ plant, highlight = false, onClick }: {
         <div className="mt-1" style={{
           fontFamily: 'ui-monospace, "SF Mono", monospace',
           fontSize: 9, letterSpacing: 1.5, color: PCT.inkFaint,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {plant.species ?? 'Unknown species'} · {plant.room ?? 'Unsited'} · {Math.round(plant.hydration * 100)}%
         </div>

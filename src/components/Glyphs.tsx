@@ -4,9 +4,11 @@
 
 interface IconProps { color?: string; size?: number; className?: string }
 
-export function ChevronGlyph({ color = 'currentColor', size = 18, className }: IconProps) {
+export function ChevronGlyph({ color = 'currentColor', size = 18, className, direction = 'left' }: IconProps & { direction?: 'left' | 'right' | 'up' | 'down' }) {
+  const rotation = direction === 'right' ? 180 : direction === 'up' ? 90 : direction === 'down' ? -90 : 0
   return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" className={className}>
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" className={className}
+      style={{ transform: rotation ? `rotate(${rotation}deg)` : undefined }}>
       <path d="M11 4L6 9l5 5" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )

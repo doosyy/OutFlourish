@@ -97,19 +97,13 @@ export default function PlantDetail() {
   const dueLabel = getDueLabel(plant, opts)
   const dueState = getDueState(plant, opts)
   const species = plant.speciesId ? getSpeciesById(plant.speciesId) : undefined
-  const stateLabel =
-    dueState === 'overdue' ? 'Overdue'
-    : dueState === 'soon' ? 'Due soon'
-    : dueState === 'fresh' ? 'Just watered'
-    : 'Settled'
-
   const existingRooms = rooms.map(r => r.name)
 
   return (
     <div className="min-h-screen relative" style={{
       background: PCT.cream,
       color: PCT.ink,
-      paddingBottom: 110,
+      paddingBottom: 'max(160px, calc(var(--sab) + 140px))',
     }}>
       {/* ── HERO PHOTO ─────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden" style={{
@@ -154,7 +148,7 @@ export default function PlantDetail() {
             }}
           >
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent }} />
-            {stateLabel} · {dueLabel}
+            {dueLabel}
           </div>
           <div className="flex gap-2">
             <GlassCircle onClick={() => setShowEdit(v => !v)} ariaLabel="Edit">

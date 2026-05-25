@@ -194,7 +194,7 @@ export default function SettingsScreen() {
       <Group title="Rooms">
         <Row label="Manage rooms" hint={`${rooms.length} room${rooms.length !== 1 ? 's' : ''}. Light tags affect watering intervals.`}
           chevron onClick={() => navigate('/rooms')}
-          control={<ChevronGlyph color={PCT.inkFaint} size={16} />} />
+          control={<ChevronGlyph color={PCT.inkFaint} size={16} direction="right" />} />
         <Row label="Group home by room" hint="Plants stack under their room name."
           control={<Toggle on={settings.rooms.groupHomeByRoom}
             onChange={v => updateSettings({ rooms: { ...settings.rooms, groupHomeByRoom: v } })} />} />
@@ -232,14 +232,14 @@ export default function SettingsScreen() {
       <Group title="Data">
         <Row label="Export backup" hint="JSON file with all plants, rooms, history & settings."
           chevron onClick={handleExport}
-          control={<ChevronGlyph color={PCT.inkFaint} size={16} />} />
+          control={<ChevronGlyph color={PCT.inkFaint} size={16} direction="right" />} />
         <Row label="Import backup" hint="Restore on a new device."
           chevron onClick={() => fileRef.current?.click()}
-          control={<ChevronGlyph color={PCT.inkFaint} size={16} />} />
+          control={<ChevronGlyph color={PCT.inkFaint} size={16} direction="right" />} />
         <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
         <Row label="Clear all data" hint="Permanently remove every plant."
           tone="danger" chevron onClick={() => setPicker('clearData')}
-          control={<ChevronGlyph color={PCT.thirsty} size={16} />} />
+          control={<ChevronGlyph color={PCT.thirsty} size={16} direction="right" />} />
       </Group>
 
       {/* About */}
@@ -247,8 +247,8 @@ export default function SettingsScreen() {
         <Row label="Version" control={<Plain>1.0.0 · Phase 4</Plain>} />
         <Row label="Made in" control={<Plain>Carlton North, Melbourne</Plain>} />
         <Row label="Privacy" chevron onClick={() => navigate('/privacy')}
-          control={<ChevronGlyph color={PCT.inkFaint} size={16} />} />
-        <Row label="Send feedback" chevron control={<ChevronGlyph color={PCT.inkFaint} size={16} />} />
+          control={<ChevronGlyph color={PCT.inkFaint} size={16} direction="right" />} />
+        <Row label="Send feedback" chevron control={<ChevronGlyph color={PCT.inkFaint} size={16} direction="right" />} />
         {plants.length > 0 && (
           <Row
             label="Preview NFC moment"
