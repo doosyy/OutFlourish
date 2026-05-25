@@ -23,7 +23,7 @@ Local-first iOS plant-care app. Tap an NFC tag on the pot to water; the meter ri
 | Styling | Tailwind CSS v3 + custom theme tokens | OKLCH palette, DM Serif + Newsreader |
 | Data | `@capacitor/preferences` (single `Repository` boundary in `src/store.ts`) | localStorage fallback in browser |
 | Native APIs | `@capacitor/app`, `@capacitor/local-notifications`, `@capacitor/share`, `@capacitor/haptics`, `@capacitor/camera`, `@capacitor/filesystem`, `@capawesome/capacitor-badge@6.0.0` | Pin badge to 6.0.0; latest 8.x requires Capacitor 8 |
-| NFC | `@capawesome-team/capacitor-nfc` (sponsorware) | Dynamic `require()` in try/catch; gracefully degrades on web/simulator |
+| NFC | `@exxili/capacitor-nfc@0.0.13` (MIT, free) | Static import; iOS read+write via `NFC.startScan()` / `NFC.writeNDEF()` / `NFC.onRead()` / `NFC.onError()`; throws on web — caller catches and shows ErrorSheet |
 | Fonts | DM Serif Display + Newsreader | Loaded via Google Fonts `<link>` in `index.html` |
 
 **`package.json` `"type": "module"`** → all config files use ESM `export default` syntax.
@@ -49,7 +49,9 @@ plant-care/
 ├── .claude/launch.json        # dev server config for Claude Code preview
 ├── .gitignore                 # excludes node_modules, dist, .env, ios build artifacts
 ├── index.html                 # font preconnect + apple-mobile-web-app meta tags
-├── capacitor.config.ts        # appId com.plantcare.app, appName PlantCare (TODO: rename)
+├── capacitor.config.ts        # appId app.outflourish, appName OutFlourish
+├── assets/                    # source 1024×1024 icon + 2732×2732 splash for capacitor-assets
+├── ios/                       # native iOS Xcode project (cap add ios), pods committed, build artifacts gitignored
 ├── vite.config.ts             # base: './'
 ├── tailwind.config.js         # PCT palette as Tailwind tokens, custom keyframes
 ├── postcss.config.js
@@ -74,23 +76,28 @@ plant-care/
     ├── HomeScreen.tsx         # Hybrid layout + HomeByRoom + EmptyHome
     ├── PlantDetail.tsx        # Hero photo, overlapping meter, sparkline, accordion, diary, edit
     ├── AddPlantScreen.tsx     # Search → form flow with NFC banner
-    ├── SettingsScreen.tsx     # 6 groups + collection summary
+    ├── SettingsScreen.tsx     # 8 groups + collection summary + picker sheets
+    ├── ManageRoomsScreen.tsx  # /rooms — list/add/edit/delete rooms with light level
     ├── Onboarding.tsx         # 4-step welcome + LaunchScreen
     ├── PermissionPrompt.tsx   # 4 variants: nfc/notifications/camera/photos
     ├── NfcMoment.tsx          # 6.5s signature animation
     ├── PrivacyPolicy.tsx      # 7 numbered sections at /privacy
+    ├── photos.ts              # capturePlantPhoto helper — Camera + Filesystem wrapper
     ├── components/
     │   ├── Brand.tsx          # WateringCan, Wordmark, AppIconMark
     │   ├── Glyphs.tsx         # line-drawn icon set (no emoji)
     │   ├── PlantPhotoMeter.tsx    # ★ centerpiece — circular photo + wave overlay
     │   ├── MoistureMeter.tsx  # photo-less variant + MoistureBar
     │   ├── HydrationSparkline.tsx # 30-day chart with watering dots
+    │   ├── PhotoPicker.tsx    # tappable thumbnail → chooser sheet → PermissionPrompt → capture
     │   └── UI.tsx             # TopBar, AccordionRow, Tag, Pill, Toggle, BottomSheet, FormField, TerrazzoTexture, CircleBtn, GlassCircle
     └── sheets/
         ├── index.ts
-        ├── WateringSheet.tsx       # ml stepper + small/medium/deep presets
+        ├── WateringSheet.tsx       # ml stepper + small/medium/deep presets (also opens via long-press on Plant Detail water button)
+        ├── WaterAllSheet.tsx       # batch watering with checkboxes + ml totals
         ├── AlreadyWateredSheet.tsx # confirm log within 12h
-        ├── ErrorSheet.tsx          # 4 variants
+        ├── ErrorSheet.tsx          # 4 variants — global via store.errorSheet
+        ├── PhotoSourceSheet.tsx    # Take/Choose/Use species chooser
         └── Toast.tsx               # auto-dismiss + Undo button
 ```
 
@@ -303,16 +310,28 @@ All due/hydration funcs accept `DueOptions = { now?, hemisphere?, roomLight?, li
 
 ## 7 · Implementation contracts
 
-### NFC (`@capawesome-team/capacitor-nfc`)
-- **Paired tag, >12h since last drink** → opens NfcMoment animation; logs watering at 2.6s mark; routes to plant detail on completion.
-- **Paired tag, <12h since last drink** → opens AlreadyWateredSheet (Confirm / Cancel).
-- **Unknown/blank tag** → opens AddPlantScreen with `pendingNfcWrite=true` banner; saving writes `plant_<id>` to the tag.
-- **Tag write failure** → ErrorSheet `kind='tag-write-failed'` *(component built; not yet wired)*.
-- **No NFC device** → ErrorSheet `kind='nfc-unavailable'` *(component built; not yet wired)*.
+### NFC (`@exxili/capacitor-nfc`)
+- **Trigger:** user taps the floating "Hold to a plant tag" pill on Home → `NFC.startScan()` opens iOS Core NFC modal. iOS requires explicit user gesture per session — no auto-scan.
+- **Paired tag, >12h since last drink** → NfcMoment animation; auto-logs watering at 2.6s mark; routes to plant detail on completion.
+- **Paired tag, <12h since last drink** → AlreadyWateredSheet (Confirm / Cancel).
+- **Unknown/blank tag** → ErrorSheet `kind='tag-unknown'` → primary CTA navigates to /add with `pendingNfcWrite=true` banner.
+- **Save plant with pendingNfcWrite** → `NFC.writeNDEF()` writes a Text record with `plant_<id>`.
+- **Tag write failure** → ErrorSheet `kind='tag-write-failed'`.
+- **No NFC device / web / simulator** → `NFC.startScan()` throws → caller catches and shows ErrorSheet `kind='nfc-unavailable'`.
 
-NFC plugin is sponsorware. We `require()` it dynamically in `App.tsx` so the build works without it. All `Nfc.*` calls wrapped in try/catch.
+**Apple constraint:** the "Near Field Communication Tag Reading" capability requires a paid Apple Developer Program account. Personal Team (free Apple ID) gets "No Matches" when searching capabilities. NFC code compiles and ships without the capability — it just throws at runtime. The Exxili plugin handles graceful fallback via its web shim.
 
-Event name is `nfcTagScanned` (not `ndefMessage`). Payload decoder skips `1 + (payload[0] & 0x3f)` bytes for the language code prefix.
+**Payload format:** NDEF Well-Known Text record. First byte = status (bits 0-5 = language-code length), then language code (`en` = 2 bytes), then UTF-8 text. `parsePlantIdFromNdefPayload()` reads it back. We pass `rawMode: true` to `writeNDEF` so we build the framing ourselves.
+
+**API summary** (live in `src/App.tsx`, `src/HomeScreen.tsx`, `src/AddPlantScreen.tsx`):
+```ts
+import { NFC } from '@exxili/capacitor-nfc'
+await NFC.isSupported()                      // { supported: boolean }
+await NFC.startScan({ mode: 'auto' })        // opens iOS modal
+NFC.onRead(data => { ... })                  // subscription; returns unsubscribe fn
+NFC.onError(err => { ... })                  // subscription
+await NFC.writeNDEF({ records, rawMode })    // writes (requires session)
+```
 
 ### Notifications (`@capacitor/local-notifications`)
 - Morning badge at `settings.reminders.timeOfDay` (default 07:30).
@@ -370,10 +389,11 @@ Event name is `nfcTagScanned` (not `ndefMessage`). Payload decoder skips `1 + (p
 | `/` | HomeScreen | Hybrid or by-room based on settings |
 | `/plant/:id` | PlantDetail | Most code-dense screen |
 | `/add` | AddPlantScreen | Search → form, supports NFC banner |
-| `/settings` | SettingsScreen | 6 groups |
+| `/settings` | SettingsScreen | 8 groups |
+| `/rooms` | ManageRoomsScreen | Add/edit/delete rooms with light level |
 | `/privacy` | PrivacyPolicy | Linked from Settings → About |
 
-Bottom-sheet overlays (`AlreadyWateredSheet`, `WateringSheet`, `ErrorSheet`, `Toast`, `NfcMoment`, `Onboarding`, `PermissionPrompt`) render at the App level, not as routes — they overlay whatever route is active. Use Capacitor `App.addListener('appUrlOpen')` for deep-link state, not separate routes.
+Bottom-sheet overlays (`AlreadyWateredSheet`, `WateringSheet`, `WaterAllSheet`, `ErrorSheet`, `PhotoSourceSheet`, `Toast`, `NfcMoment`, `Onboarding`, `PermissionPrompt`) render at the App or screen level, not as routes — they overlay whatever route is active. Use Capacitor `App.addListener('appUrlOpen')` for deep-link state, not separate routes.
 
 ---
 
@@ -415,37 +435,52 @@ When the meter is in an overdue state (Plant Detail), it gets a 3px terracotta b
 
 | Item | Status |
 |---|---|
-| App icon (1024×1024 PNG, no transparency, no rounded corners) | Designed as `AppIconMark`; needs export via `npx capacitor-assets generate` |
-| Launch screen | Designed in `src/Onboarding.tsx → LaunchScreen`; iOS `LaunchScreen.storyboard` not yet built |
+| App icon 1024×1024 + all iOS sizes | ✓ Generated via `npx capacitor-assets generate --ios` from `assets/icon.png` (extracted from Gemini design mockup) |
+| Splash screen (light + dark) | ✓ Generated from `assets/splash.png` (cream bg + centred icon) |
+| Launch screen storyboard | iOS default `LaunchScreen.storyboard` still in place; bouncing-dot variant in `src/Onboarding.tsx → LaunchScreen` not yet wired natively |
+| Info.plist usage strings | ✓ Camera, Photos, PhotosAdd, NFC reader |
+| Entitlements (`App.entitlements`) | ✓ `com.apple.developer.nfc.readersession.formats = [NDEF, TAG]` + `aps-environment = development` |
+| Privacy manifest (`PrivacyInfo.xcprivacy`) | ✓ No tracking, no data collection, UserDefaults + FileTimestamp required-reason APIs declared |
+| Bundle identity | ✓ `appId: app.outflourish`, `appName: OutFlourish` |
+| Bundle version / build | `1.0.0` / `1` in pbxproj — bump before each TestFlight build |
+| Apple Developer Program | **Pending** — required for NFC capability + Push capability + TestFlight |
+| NFC capability in Xcode | **Pending** — adds itself once paid Team is selected and capability + button is clicked |
+| Push Notifications capability | **Pending** — same. Needed by `@capacitor/local-notifications` for proper delivery routing |
 | 5 marketing screenshots (1290×2796) | Designed in original `marketing.jsx`; needs render+export |
-| App Store metadata | TBD — see `HANDOFF.md` §11 |
+| App Store metadata (title, subtitle, description, keywords) | TBD — see `HANDOFF.md` §11 |
 | Privacy policy URL | Content in `src/PrivacyPolicy.tsx`; needs hosting (e.g. `doosyy.github.io/outflourish/privacy`) |
 | Privacy nutrition label | All "Not Collected" |
 | Age rating | 4+ |
 
 ---
 
-## 13 · Phase 4 deferred items
+## 13 · Remaining deferred items
 
-Tracked for future work. None block running the app in browser.
+Tracked for future work. None block the current build.
 
-1. **App icon + iOS splash via `@capacitor/assets generate`** — needs Xcode pass.
-2. **PermissionPrompt wiring** — components built (`src/PermissionPrompt.tsx`) but not inserted into Camera/Photos flow in AddPlantScreen.
-3. **WateringSheet integration** — built (`src/sheets/WateringSheet.tsx`) but not yet wired to a "custom amount" affordance on Plant Detail (primary CTA still logs `recommendedMl` directly).
-4. **Water-all multi-select sheet** — Home quick action currently shows an `alert()` placeholder.
-5. **Error sheets routing** — `tag-unknown`/`tag-write-failed`/`nfc-unavailable`/`upload-failed` variants need integration into the NFC flow.
-6. **Species library expansion** — 6 species → 150. SPECIES.md prompt template can batch-generate.
-7. **EmptyRoomState** — designed but not implemented.
-8. **Manage Rooms screen** — Settings → Manage rooms chevron leads nowhere yet.
-9. **Hemisphere/region pickers** — Settings shows hemisphere/region as Pills, not editable yet.
-10. **Reminder time pickers** — Settings reminder time/quiet hours pills not editable yet.
-11. **Long plant name truncation** — not enforced.
-12. **Notification appearance design** — iOS will use default banner.
-13. **iCloud sync (CKShare)** — designer flagged as v1.1.
-14. **Apple Watch companion** — not designed; v2.
-15. **iPad layout** — not designed.
-16. **Live Activity / Dynamic Island** — not designed; would be lovely.
-17. **Localisation** — copy is UK/AU English only.
+1. **EmptyRoomState** — designed but not implemented.
+2. **Editable Hemisphere/region pickers in Settings** — currently static Pills, not tappable.
+3. **Editable reminder time / quiet hours pickers** — currently static Pills.
+4. **Species library expansion** — 6 species → 150. SPECIES.md prompt template can batch-generate.
+5. **Notification appearance design** — iOS uses default banner; rich notification not yet designed.
+6. **Photo cleanup on swap** — `photos.ts` writes new file each time but doesn't delete the old one. Minor storage leak; add `photoPath` to Plant for tracking.
+7. **NFC preview side-effect** — Settings → Preview NFC moment fires real `logWater()` mid-animation. Acceptable for v1 (Undo dismisses), but could pass a `previewMode` prop to NfcMoment to suppress.
+8. **iCloud sync (CKShare)** — designer flagged as v1.1.
+9. **Apple Watch companion** — not designed; v2.
+10. **iPad layout** — not designed.
+11. **Live Activity / Dynamic Island** — not designed; would be lovely.
+12. **Localisation** — copy is UK/AU English only.
+
+### Completed in Phase 4 (no longer deferred)
+- App icon + splash via `@capacitor/assets generate` ✓
+- PermissionPrompt wiring for camera/photos ✓ (`src/components/PhotoPicker.tsx`)
+- Custom-amount watering: long-press Water button opens WateringSheet ✓
+- Water-all multi-select sheet ✓ (`src/sheets/WaterAllSheet.tsx`)
+- Error sheets routing — `tag-unknown` / `tag-write-failed` / `nfc-unavailable` ✓ (global via `store.errorSheet`)
+- Manage Rooms screen ✓ (`src/ManageRoomsScreen.tsx` at `/rooms`)
+- Long plant name truncation across Home and Plant Detail ✓
+- Onboarding region picker overlap fix ✓
+- NFC integration (read + write) via free Exxili plugin ✓
 
 ---
 
@@ -456,11 +491,11 @@ Tracked for future work. None block running the app in browser.
 | Species library for v1 | 6 designer species only |
 | Theme mode | Light only (no dark mode) |
 | Plant photos | Bundle 720px JPGs in `public/species/` |
-| User-uploaded photos | Add `@capacitor/camera` + `@capacitor/filesystem` (installed; not yet wired into UI) |
+| User-uploaded photos | ✓ Wired Phase 4 via `src/photos.ts` + `src/components/PhotoPicker.tsx`. Uses `@capacitor/camera` + `@capacitor/filesystem`. Persists to `Directory.Data/plants/`. |
 | Default rooms | Seed single "Living Room" (medium light) |
 | Onboarding | Show once. `settings_v1.onboardingComplete=true` after step 3. Reset only via Clear all data. |
 | NFC moment | Full-screen takeover, 6.5s, auto-dismiss, logs at 'watering' phase |
-| Water-all | Multi-select sheet with checkboxes + per-plant ml override (placeholder for now) |
+| Water-all | ✓ Wired Phase 4 — `src/sheets/WaterAllSheet.tsx`. Checkboxes (all pre-checked), per-plant photo + ml, total summed, single Log button. |
 | iOS widget | Defer to v1.1 |
 | App Store assets | User handles outside code phases |
 | Region default | Asked in onboarding step 3 (4 steps total, not 3) |
@@ -479,14 +514,12 @@ Tracked for future work. None block running the app in browser.
 - The store exposes both `useStore` (new) and `usePlantStore` (legacy alias) and `Repository`/`PlantRepository`. This is intentional for backward compatibility during migration — the alias should be removed once Phase 4 verifies nothing else references the old names.
 - Plant migration in `Repository.loadPlants()` (`migratePlant()` function) handles the v1 → current schema upgrade silently. Old plants with `emoji` and no `photo` get defaulted to empty photo (gradient fallback).
 
-### NFC sponsorware pattern
-- `@capawesome-team/capacitor-nfc` requires paid Insiders access — not on npm public registry.
-- Pattern in `src/App.tsx`:
-  ```ts
-  let Nfc: { ... } | null = null
-  try { Nfc = require('@capawesome-team/capacitor-nfc').Nfc } catch { /* not installed */ }
-  ```
-  All `Nfc.*` calls then guarded with `if (Nfc)`.
+### NFC plugin pattern (Exxili — free, MIT)
+- We use `@exxili/capacitor-nfc` instead of the paid Capawesome plugin. Static import — no try/catch wrapper needed at the import level. The plugin's own web shim throws on `startScan` etc. in the browser, so callers wrap individual calls in try/catch and route the failure to `ErrorSheet kind='nfc-unavailable'`.
+- App.tsx subscribes to `NFC.onRead(cb)` and `NFC.onError(cb)` on mount — these are passive listeners and don't open the iOS modal. The modal only opens when something calls `NFC.startScan()`, which has to be a user gesture (currently the floating "Hold to a plant tag" pill).
+- iOS Core NFC sessions are short-lived (~60s) and end when a tag is read or the user dismisses the modal. We do not try to keep a persistent session — each scan is a fresh `startScan()`.
+- Writing: build the NDEF Text record framing manually (status byte + lang code + UTF-8 text), pass with `rawMode: true`. The plugin's auto-framing for type `'T'` doubles up the language code prefix.
+- **Capability is a paywall**: even with the free plugin, the Xcode "NFC Tag Reading" capability requires a paid Apple Developer Program account. The code compiles and runs fine without it; NFC just throws at runtime, which we already handle.
 
 ### Wave physics in PlantPhotoMeter
 - `buildWavePath(yBase, size, amp)` builds a path 3× the meter width with 9 peaks. Translating by `-100%` then loops seamlessly with linear timing.
@@ -499,18 +532,37 @@ Tracked for future work. None block running the app in browser.
 - The `isLoaded` flag guards against showing onboarding briefly during the initial Preferences load.
 
 ### "Why the project folder is `plant-care/`"
-The local directory is `plant-care/` from the original code-only phase before the design assigned the OutFlourish name. The repo is named OutFlourish; the folder name is not a high-priority rename. The `appId` in `capacitor.config.ts` (`com.plantcare.app`) and the `package.json` `name` (`plant-care`) should be migrated to OutFlourish during Phase 4 iOS prep.
+The local directory is `plant-care/` from the original code-only phase before the design assigned the OutFlourish name. The repo is named OutFlourish; the folder name is not a high-priority rename. The `appId` in `capacitor.config.ts` was migrated to `app.outflourish` in Phase 4. The `package.json` `name` (`plant-care`) is harmless but could be renamed later.
 
-### Things to grep for when renaming
-- `capacitor.config.ts` → `appId`, `appName`
-- `package.json` → `name`
-- `src/App.tsx` deep link URL scheme (currently parses `outflourish://` and `plantcare://` interchangeably — should narrow to outflourish:// before App Store submission)
-- Settings about block (`"1.0.0 · Phase 3"` → real version)
+### Camera + Photos integration (Phase 4)
+- `src/photos.ts` is the single boundary. `capturePlantPhoto(plantId, source)` returns `{ src, path? }` or null on cancel/denial.
+- iOS path: base64 from `@capacitor/camera` → `Filesystem.writeFile` to `Directory.Data/plants/<id>-<ts>.jpg` → `Capacitor.convertFileSrc(uri)` → assignable to `<img src>`.
+- Web fallback: hidden `<input type="file">` returns an object URL. Doesn't persist; dev-only.
+- `src/components/PhotoPicker.tsx` orchestrates: tappable thumbnail → `PhotoSourceSheet` → `PermissionPrompt` → call into `photos.ts` → fire `onChange(newSrc)` to parent.
+- Used in both `AddPlantScreen` (during creation) and `PlantDetail`'s edit form (for swaps later).
+- Bug to know about: when user swaps a photo, the old file isn't deleted. Add `photoPath` to `Plant` to enable cleanup; current state is a small storage leak.
 
-### Phase 4 starting points
-- Run `npm run cap:ios` to open Xcode and start iOS device testing.
-- `Info.plist` needs `NSCameraUsageDescription` + `NSPhotoLibraryUsageDescription` added before Camera/Photos plugins can prompt.
-- The PlantDetail "Send to compost" button currently just opens the edit form. Should fire delete-with-confirm-modal flow.
+### How to test NFC end-to-end
+1. Paid Apple Developer Team selected in Xcode → Signing & Capabilities.
+2. **+ Capability → "Near Field Communication Tag Reading"** (no longer "No Matches" once paid Team is active). Tick NDEF + TAG.
+3. **+ Capability → "Push Notifications"** (also gated by paid Team).
+4. Run on a real iPhone (not simulator — Core NFC is hardware-only).
+5. Get NTAG213 stickers from Amazon (~$10 for 20). NTAG213 has 144 bytes — plenty for `plant_<timestamp>`.
+6. Add a plant in the app, save it (no pairing yet).
+7. Tap "Hold to a plant tag" on Home → modal opens → hold a fresh sticker to top of phone.
+8. Modal closes, ErrorSheet kind=`tag-unknown` shows. Tap primary → /add → save a plant → triggers `NFC.writeNDEF`.
+9. From now on, tapping that sticker opens the NfcMoment animation against that plant.
+
+Tag write troubleshooting:
+- NTAG213 is fastest; NTAG215 also works (504 bytes). NTAG216 fine. Older Mifare Classic is not iOS-supported.
+- Tag must be unwritten (factory state) or rewritable (most NTAG2xx are).
+- Hold steady — Core NFC writes typically take 1-2s.
+- Failure throws to caller → ErrorSheet kind=`tag-write-failed`.
+
+### Things to grep for when prepping the App Store build
+- `src/App.tsx` deep link URL scheme — currently parses `outflourish://` only. Add `plantcare://` back if you ever shipped a TestFlight under the old bundle ID.
+- Settings about block (`"1.0.0 · Phase 4"` → bump to real version before each TestFlight upload).
+- `package.json` name (`plant-care`) — cosmetic, doesn't affect the App Store listing.
 
 ---
 
@@ -584,4 +636,47 @@ await logWater(plantId, 'water', { amountMl: 200, note: 'after repot' })
 // → automatically sets lastWaterAction → Toast appears
 // → after 5s, toast dismisses
 // → undo button calls undoLastWater()
+```
+
+### Triggering the WateringSheet UI (custom amount picker)
+Plant Detail's primary water button uses `onPointerDown`/`onPointerUp` to detect a 500ms long-press. Tap = quick log. Long-press = open WateringSheet pre-filled with `winterMl` (if seasonal dosing on AND winter) or `recommendedMl` otherwise. The `longPressTriggered` ref blocks the click handler from also firing.
+
+### Triggering a global ErrorSheet from anywhere
+```ts
+useStore.getState().setErrorSheet('nfc-unavailable')
+// → ErrorSheet renders at the App level
+// → onPrimary closes it (and navigates for tag-unknown/tag-write-failed)
+```
+
+### Capturing a user photo (Camera or Photos)
+```ts
+import { capturePlantPhoto } from './photos'
+const result = await capturePlantPhoto(plant.id, 'camera')  // or 'photos'
+// → null if user cancelled or permission denied
+// → { src: 'capacitor://...', path: 'plants/<id>-<ts>.jpg' } on success
+if (result) updatePlant(plant.id, { photo: result.src })
+```
+
+### Triggering an NFC scan from a user gesture
+```ts
+import { NFC } from '@exxili/capacitor-nfc'
+try {
+  const { supported } = await NFC.isSupported()
+  if (!supported) { useStore.getState().setErrorSheet('nfc-unavailable'); return }
+  await NFC.startScan()  // opens iOS modal — `NFC.onRead` listener in App.tsx handles the result
+} catch {
+  useStore.getState().setErrorSheet('nfc-unavailable')
+}
+```
+
+### Writing plant_<id> to a blank NFC tag
+```ts
+import { NFC } from '@exxili/capacitor-nfc'
+const langCode = 'en'
+const status = langCode.length & 0x3f
+const langBytes = new TextEncoder().encode(langCode)
+const textBytes = new TextEncoder().encode(plant.id)
+const payload = [status, ...langBytes, ...textBytes]
+await NFC.writeNDEF({ records: [{ type: 'T', payload }], rawMode: true })
+// rawMode = true → don't double-frame the Text record header
 ```
