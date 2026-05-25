@@ -449,14 +449,27 @@ function AlmanacRow({ plant, highlight = false, onClick }: {
 // ─── Floating "Hold to a plant tag" pill ─────────────────────────────────────
 function FloatingNfcPill() {
   const setErrorSheet = useStore(s => s.setErrorSheet)
-  const hasNfc = typeof window !== 'undefined' && 'NDEFReader' in window
+  const handleTap = async () => {
+    try {
+      const { NFC } = await import('@exxili/capacitor-nfc')
+      const { supported } = await NFC.isSupported()
+      if (!supported) {
+        setErrorSheet('nfc-unavailable')
+        return
+      }
+      await NFC.startScan()
+      // Native iOS modal opens. App.tsx onRead listener handles the result.
+    } catch {
+      setErrorSheet('nfc-unavailable')
+    }
+  }
   return (
     <div
       className="fixed left-6 right-6 flex justify-center pointer-events-none z-10"
       style={{ bottom: 'max(50px, var(--sab))' }}
     >
       <button
-        onClick={() => { if (!hasNfc) setErrorSheet('nfc-unavailable') }}
+        onClick={handleTap}
         className="flex items-center gap-3 pointer-events-auto cursor-pointer"
         style={{
           background: PCT.ink,

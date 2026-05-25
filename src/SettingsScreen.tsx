@@ -8,7 +8,8 @@ import { Share } from '@capacitor/share'
 import { useStore, Repository } from './store'
 import { PCT } from './tokens'
 import { TopBar, Toggle, Pill } from './components/UI'
-import { ChevronGlyph, LeafGlyph } from './components/Glyphs'
+import { ChevronGlyph, LeafGlyph, NFCGlyph } from './components/Glyphs'
+import NfcMoment from './NfcMoment'
 
 // ─── Picker sheet state ──────────────────────────────────────────────────────
 type PickerKind =
@@ -27,6 +28,7 @@ export default function SettingsScreen() {
   const { plants, rooms, settings, updateSettings, exportData, importData } = useStore()
   const [lastExportAt, setLastExportAt] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [nfcPreview, setNfcPreview] = useState(false)
   const [picker, setPicker] = useState<PickerKind | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -242,12 +244,26 @@ export default function SettingsScreen() {
 
       {/* About */}
       <Group title="About">
-        <Row label="Version" control={<Plain>1.0.0 · Phase 3</Plain>} />
+        <Row label="Version" control={<Plain>1.0.0 · Phase 4</Plain>} />
         <Row label="Made in" control={<Plain>Carlton North, Melbourne</Plain>} />
         <Row label="Privacy" chevron onClick={() => navigate('/privacy')}
           control={<ChevronGlyph color={PCT.inkFaint} size={16} />} />
         <Row label="Send feedback" chevron control={<ChevronGlyph color={PCT.inkFaint} size={16} />} />
+        {plants.length > 0 && (
+          <Row
+            label="Preview NFC moment"
+            hint="Play the watering animation against your first plant."
+            chevron
+            onClick={() => setNfcPreview(true)}
+            control={<NFCGlyph color={PCT.terracottaDeep} size={16} />}
+          />
+        )}
       </Group>
+
+      {/* NFC moment preview overlay (debug) */}
+      {nfcPreview && plants[0] && (
+        <NfcMoment plant={plants[0]} onComplete={() => setNfcPreview(false)} />
+      )}
 
       {/* Footer */}
       <div className="text-center px-5.5" style={{

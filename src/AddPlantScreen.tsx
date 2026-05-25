@@ -8,6 +8,7 @@
 
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { NFC } from '@exxili/capacitor-nfc'
 import { useStore } from './store'
 import { searchSpecies, type SpeciesProfile, type Difficulty } from './speciesDb'
 import { PCT } from './tokens'
@@ -17,7 +18,7 @@ import { SearchGlyph, NFCGlyph } from './components/Glyphs'
 
 export default function AddPlantScreen() {
   const navigate = useNavigate()
-  const { addPlant, pendingNfcWrite, setPendingNfcWrite, rooms } = useStore()
+  const { addPlant, pendingNfcWrite, setPendingNfcWrite, rooms, setErrorSheet } = useStore()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<SpeciesProfile | null>(null)
   const [name, setName] = useState('')
@@ -48,7 +49,7 @@ export default function AddPlantScreen() {
   const handleSave = async () => {
     if (!selected || !name.trim() || saving) return
     setSaving(true)
-    await addPlant({
+    const newPlant = await addPlant({
       name: name.trim(),
       species: selected.name,
       speciesId: selected.id,
@@ -59,7 +60,29 @@ export default function AddPlantScreen() {
       room: room.trim() || undefined,
       mood: selected.defaultMood,
     })
-    if (pendingNfcWrite) setPendingNfcWrite(false)
+    // Pair the blank NFC tag with the new plant.
+    if (pendingNfcWrite) {
+      try {
+        // NDEF Well Known Text record: status byte 0x02 (UTF-8, 2-char lang code) + 'en' + payload
+        const langCode = 'en'
+        const text = newPlant.id  // e.g. 'plant_1716629192988'
+        const status = langCode.length & 0x3f
+        const encoder = new TextEncoder()
+        const langBytes = encoder.encode(langCode)
+        const textBytes = encoder.encode(text)
+        const payload = [status, ...langBytes, ...textBytes]
+        await NFC.writeNDEF({
+          records: [{ type: 'T', payload }],
+          rawMode: true,
+        })
+        setPendingNfcWrite(false)
+      } catch (err) {
+        console.warn('[NFC] write failed:', err)
+        setErrorSheet('tag-write-failed')
+        setSaving(false)
+        return
+      }
+    }
     navigate('/')
   }
 
