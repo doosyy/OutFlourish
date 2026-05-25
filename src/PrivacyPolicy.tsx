@@ -1,4 +1,4 @@
-// Privacy policy screen — neutral, system voice. Linked from Settings → About.
+// Privacy policy screen. Neutral, system voice. Linked from Settings → About.
 
 import { useNavigate } from 'react-router-dom'
 import { PCT } from './tokens'
@@ -32,7 +32,7 @@ export default function PrivacyPolicy() {
           fontFamily: 'Newsreader, Georgia, serif',
           fontSize: 15, lineHeight: 1.55, color: PCT.inkSoft,
         }}>
-          OutFlourish is a local-first app. Everything lives on your phone —
+          OutFlourish is a local-first app. Everything lives on your phone.
           we don't have servers, we don't run analytics, and we will never sell anything to anyone.
         </p>
       </div>
@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
       <Section n="02" title="What we collect"
         body="Nothing. No analytics, no crash logs unless you opt in through iOS Settings → Privacy → Analytics. No advertising identifiers. No third-party SDKs." />
       <Section n="03" title="What we share"
-        body="Nothing. There is no network call OutFlourish makes that contains your plant data. If you export a backup, you decide where it goes — AirDrop, iCloud Drive, a USB cable. The choice is yours every time." />
+        body="Nothing. There is no network call OutFlourish makes that contains your plant data. If you export a backup, you decide where it goes, AirDrop, iCloud Drive, a USB cable. The choice is yours every time." />
       <Section n="04" title="NFC tags"
         body="The stickers on your pots store only a short identifier (e.g. plant_142). They have no battery, no radio, no memory beyond that. Anyone who scans your tag sees a number, not a name." />
       <Section n="05" title="Permissions"
@@ -50,7 +50,7 @@ export default function PrivacyPolicy() {
       <Section n="06" title="Children"
         body="The app contains no advertising, no in-app purchases, and no online communication features. It is safe for any age. We do not knowingly collect data from anyone." />
       <Section n="07" title="Contact"
-        body="hello@outflourish.app — for genuine questions about your data. We'll answer within a week." />
+        body="hello@outflourish.app. For genuine questions about your data. We'll answer within a week." />
 
       <div className="text-center pt-6 px-7" style={{
         fontFamily: '"DM Serif Display", Georgia, serif',

@@ -1,4 +1,4 @@
-// ErrorSheet — four variants for NFC + upload failures.
+// ErrorSheet. Four variants for NFC + upload failures.
 // One shell, content selected via `kind`.
 
 import React from 'react'
@@ -48,7 +48,7 @@ const CONFIG: Record<ErrorKind, Config> = {
     severity: 'warn',
     kicker: 'NFC not available',
     title: "This phone can't read tags.",
-    body: 'OutFlourish still works without NFC — you can log waterings by tapping the button on each plant. NFC requires iPhone 7 or newer with iOS 14+.',
+    body: 'OutFlourish still works without NFC. You can log waterings by tapping the button on each plant. NFC requires iPhone 7 or newer with iOS 14+.',
     primary: 'Continue without NFC',
     secondary: null,
     icon: c => <NFCGlyph color={c} size={32} />,

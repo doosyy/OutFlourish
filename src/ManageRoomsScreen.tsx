@@ -1,4 +1,4 @@
-// ManageRoomsScreen — list, add, edit, and delete rooms.
+// ManageRoomsScreen. List, add, edit, and delete rooms.
 // Neutral system voice. Each room shows its name, light level, and plant count.
 
 import { useState } from 'react'
@@ -15,9 +15,9 @@ const LIGHT_LABELS: Record<LightLevel, string> = {
 }
 
 const LIGHT_HINTS: Record<LightLevel, string> = {
-  low: 'North-facing or shaded — watering intervals extended 20%',
-  medium: 'Standard indirect light — no adjustment',
-  bright: 'Direct or strong indirect — intervals shortened 10%',
+  low: 'North-facing or shaded. Watering intervals extended 20%',
+  medium: 'Standard indirect light. No adjustment',
+  bright: 'Direct or strong indirect. Intervals shortened 10%',
 }
 
 export default function ManageRoomsScreen() {
@@ -117,7 +117,7 @@ export default function ManageRoomsScreen() {
   )
 }
 
-// ─── RoomCard — read-only row ────────────────────────────────────────────────
+// ─── RoomCard. Read-only row ────────────────────────────────────────────────
 function RoomCard({ room, plantCount, onEdit }: {
   room: Room; plantCount: number; onEdit: () => void
 }) {
@@ -179,7 +179,7 @@ function RoomCard({ room, plantCount, onEdit }: {
   )
 }
 
-// ─── RoomEditCard — inline edit / add form ───────────────────────────────────
+// ─── RoomEditCard. Inline edit / add form ───────────────────────────────────
 function RoomEditCard({ room, plantCount, onSave, onDelete, onCancel }: {
   room?: Room
   plantCount?: number
@@ -253,7 +253,7 @@ function RoomEditCard({ room, plantCount, onSave, onDelete, onCancel }: {
       </div>
 
       <FormField label="Notes" value={notes} onChange={setNotes}
-        placeholder="Optional — e.g. East-facing windows" subhint="Optional" />
+        placeholder="Optional. E.g. East-facing windows" subhint="Optional" />
 
       <div className="flex gap-2.5 mt-1">
         <button
@@ -286,7 +286,7 @@ function RoomEditCard({ room, plantCount, onSave, onDelete, onCancel }: {
         >{isNew ? 'Add room' : 'Save changes'}</button>
       </div>
 
-      {/* Delete — only for existing rooms */}
+      {/* Delete. Only for existing rooms */}
       {onDelete && (
         <button
           type="button"
@@ -306,7 +306,7 @@ function RoomEditCard({ room, plantCount, onSave, onDelete, onCancel }: {
           }}
         >
           {confirmDelete
-            ? `Confirm — remove ${room?.name}${(plantCount ?? 0) > 0 ? ` (${plantCount} plants unassigned)` : ''}`
+            ? `Confirm. Remove ${room?.name}${(plantCount ?? 0) > 0 ? ` (${plantCount} plants unassigned)` : ''}`
             : `Remove ${room?.name}`}
         </button>
       )}

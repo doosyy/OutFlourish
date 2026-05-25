@@ -1,4 +1,4 @@
-// SettingsScreen — neutral, system voice.
+// SettingsScreen. Neutral, system voice.
 // Collection summary + 6 groups (Reminders / Watering / Rooms / Season /
 // Household / Data) + About footer.
 
@@ -74,7 +74,7 @@ export default function SettingsScreen() {
         const restoredCount = useStore.getState().plants.length
         flash(`Import complete — ${restoredCount} plants restored.`)
       } catch {
-        flash('Import failed — invalid backup file.')
+        flash('Import failed. Invalid backup file.')
       }
       if (fileRef.current) fileRef.current.value = ''
     }

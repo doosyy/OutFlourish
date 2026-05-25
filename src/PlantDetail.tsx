@@ -1,4 +1,4 @@
-// PlantDetail — full editorial layout per the design canvas.
+// PlantDetail. Full editorial layout per the design canvas.
 // Hero photo → cream sheet overlap → giant PlantPhotoMeter → editorial vitals
 // → primary water CTA → secondary actions → care guide accordion → diary
 // timeline → quiet edit/compost footer → "Back to the garden" pill.
@@ -322,7 +322,7 @@ export default function PlantDetail() {
           />
         )}
 
-        {/* Primary CTA — tap = log recommended; long-press = open WateringSheet */}
+        {/* Primary CTA. Tap = log recommended; long-press = open WateringSheet */}
         <button
           onClick={() => {
             if (longPressTriggered.current) return
@@ -399,7 +399,7 @@ export default function PlantDetail() {
               fontFamily: 'Newsreader, Georgia, serif',
               fontSize: 14, color: PCT.inkFaint,
             }}>
-              No care guide — custom plant.{' '}
+              No care guide. Custom plant.{' '}
               <button onClick={() => navigate('/add')} style={{
                 fontFamily: '"DM Serif Display", Georgia, serif',
                 fontStyle: 'italic',
@@ -888,7 +888,7 @@ function EditPlantForm({ plant, existingRooms, onClose, onDelete }: {
           fontStyle: 'italic', fontSize: 14,
         }}
       >
-        {confirmDelete ? 'Confirm — send to compost' : 'Send to compost'}
+        {confirmDelete ? 'Confirm. Send to compost' : 'Send to compost'}
       </button>
     </form>
   )

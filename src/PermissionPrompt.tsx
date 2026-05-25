@@ -1,4 +1,4 @@
-// PermissionPrompt — pre-prompt shown BEFORE iOS's native dialog so users
+// PermissionPrompt. Pre-prompt shown BEFORE iOS's native dialog so users
 // understand the why. One shell + 4 PERM_CONFIG entries: NFC / Notifications /
 // Camera / Photos.
 
@@ -34,7 +34,7 @@ const CONFIG: Record<PermissionKind, Config> = {
     bullets: [
       'No fumbling for the right plant in your list.',
       'Works even when the app is closed.',
-      'Tags are inert — no power, no data leaves your phone.',
+      'Tags are inert. No power, no data leaves your phone.',
     ],
     cta: 'Enable NFC',
     decline: 'Maybe later',
@@ -72,7 +72,7 @@ const CONFIG: Record<PermissionKind, Config> = {
     title: <>Or pick one<br /><span style={{ fontStyle: 'italic', color: PCT.terracottaDeep }}>from your library.</span></>,
     body: 'We only see the photos you pick, never your whole library. Apple makes sure of that.',
     bullets: [
-      'Limited access only — pick what you share.',
+      'Limited access only. Pick what you share.',
       'No analytics, no uploads to any server.',
       'Change your mind any time in Settings.',
     ],
@@ -100,7 +100,7 @@ export default function PermissionPrompt({ kind, onEnable, onDecline, onBack }: 
         color: PCT.ink,
       }}
     >
-      {/* Tiny top — back chevron */}
+      {/* Tiny top. Back chevron */}
       <div className="px-5.5 py-3">
         <button
           onClick={onBack}

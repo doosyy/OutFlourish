@@ -49,7 +49,7 @@ export default function Onboarding({ onFinish }: Props) {
         fontFamily: 'Newsreader, Georgia, serif',
       }}
     >
-      {/* Top — wordmark + skip */}
+      {/* Top. Wordmark + skip */}
       <div className="absolute top-0 left-0 right-0 flex justify-between items-center px-5.5"
         style={{ top: 'max(56px, var(--sat))' }}
       >
@@ -222,7 +222,7 @@ function Step1() {
           fontSize: 15, lineHeight: 1.55, color: PCT.inkSoft,
         }}>
           Stick a tiny NFC sticker to each pot. Hold your phone to it
-          when you water — the right plant gets logged automatically,
+          when you water. The right plant gets logged automatically,
           no fumbling, no forgetting.
         </p>
       </div>
@@ -256,7 +256,7 @@ function Step2({ region, onChange }: {
         fontSize: 15, lineHeight: 1.55, color: PCT.inkSoft,
       }}>
         Watering frequency dials back in winter and ramps up in summer.
-        Pick your nearest city — you can change this any time in Settings.
+        Pick your nearest city. You can change this any time in Settings.
       </p>
 
       <div className="flex flex-col gap-2 w-full" style={{ maxWidth: 320 }}>
@@ -339,7 +339,7 @@ function Step3() {
   )
 }
 
-// ─── LaunchScreen (transient — for splash while data loads) ──────────────────
+// ─── LaunchScreen (transient. For splash while data loads) ──────────────────
 export function LaunchScreen() {
   return (
     <div

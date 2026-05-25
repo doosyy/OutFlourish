@@ -376,7 +376,7 @@ await NFC.writeNDEF({ records, rawMode })    // writes (requires session)
 **Hard rules:**
 - **No emoji anywhere as UI chrome.** Emoji only as content (the species library can use them later if needed). Use line-drawn glyphs from `src/components/Glyphs.tsx` instead.
 - **Numbers as digits** (`240 ml`, never *two hundred forty*). Always `ml` (lowercase).
-- **Em-dashes are fine.** Exclamation points are not.
+- **No em-dashes (—) in user-facing copy.** Use periods, commas, colons, or parentheses instead. Em-dashes in code comments are fine but should not appear in any visible string. Exclamation points are also not allowed.
 - **Plants in third person** — `it`, not `your plant`.
 - Mood quotes live on each Plant (user-editable) and `SpeciesProfile.defaultMood` (template).
 

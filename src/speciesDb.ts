@@ -1,4 +1,4 @@
-// OutFlourish species library — restructured per designer's data contract.
+// OutFlourish species library: restructured per designer's data contract.
 // To add a species, append an entry to SPECIES_DB. The Plant Detail screen
 // renders every field automatically.
 
@@ -61,9 +61,9 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxicTo: 'both',
     careGuide: {
       light: 'Bright indirect light. Morning sun is fine; harsh afternoon sun scorches the leaves. About a metre from an east-facing window is ideal.',
-      water: 'When the top 3–4cm of soil is dry. About 240 ml — water steadily until you see drainage from the bottom of the pot. Drowning is the more common death than letting it dry out. Trust the meter, not the calendar.',
+      water: 'When the top 3–4cm of soil is dry. About 240 ml. Water steadily until you see drainage from the bottom of the pot. Drowning is the more common death than letting it dry out. Trust the meter, not the calendar.',
       food: 'Half-strength balanced liquid feed every 4 weeks from October to March. Off the menu in autumn and winter.',
-      season: 'Peak growth Oct–Mar. Slows in cool months — dial water back to ~160 ml and extend interval by 30% through June and July. Wipe leaves monthly for light.',
+      season: 'Peak growth Oct–Mar. Slows in cool months. Dial water back to ~160 ml and extend interval by 30% through June and July. Wipe leaves monthly for light.',
       trouble: 'Yellow leaves → overwatered. Brown crispy edges → low humidity or thirst. No fenestrations → wants more light or maturity.',
     },
     defaultMood: 'Brooding magnificently in the corner.',
@@ -84,9 +84,9 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxicTo: 'both',
     careGuide: {
       light: 'Bright indirect light, consistent placement. Will protest any move with leaf drops. Find a happy spot and leave it.',
-      water: 'When the top 3–4cm is dry. About 360 ml — water until drainage. Drooping = thirsty. Spotting + drooping = root rot. The meter tells you which.',
+      water: 'When the top 3–4cm is dry. About 360 ml. Water until drainage. Drooping = thirsty. Spotting + drooping = root rot. The meter tells you which.',
       food: 'High-nitrogen liquid feed monthly Oct–Mar. Essential for the big leaves.',
-      season: 'Reduce watering 20% in winter. Clean leaves with a damp cloth monthly — dust shades them unfairly.',
+      season: 'Reduce watering 20% in winter. Clean leaves with a damp cloth monthly. Dust shades them unfairly.',
       trouble: 'Brown spots → fungal or root rot. Leaf drop → moved or cold draft. Yellowing → overwatered.',
     },
     defaultMood: 'Stoic. Easily offended.',
@@ -107,9 +107,9 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxicTo: 'both',
     careGuide: {
       light: 'Low to medium indirect light. One of the best for darker rooms. Avoid direct sun.',
-      water: 'When the leaves just start to droop (before full wilt). About 250 ml until drainage. Likes consistency — keep lightly moist.',
+      water: 'When the leaves just start to droop (before full wilt). About 250 ml until drainage. Likes consistency. Keep lightly moist.',
       food: 'Half-strength balanced feed every 6 weeks Oct–Mar. Too much fertiliser = browning leaf tips.',
-      season: 'Big drinker in summer (every 3–4 days). Dial back in winter. Filtered water — sensitive to fluoride.',
+      season: 'Big drinker in summer (every 3–4 days). Dial back in winter. Filtered water. Sensitive to fluoride.',
       trouble: 'Brown leaf tips → tap-water fluoride or low humidity. Drooping despite moist soil → root rot. Not flowering → needs more light.',
     },
     defaultMood: 'Quietly dramatic about hydration.',
@@ -132,7 +132,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
       light: 'Tolerates almost any light, from very low to bright indirect. Direct sun is possible but causes yellowing.',
       water: 'When the soil is completely dry. About 180 ml. One of the most drought-tolerant houseplants. In winter, water as rarely as once per month.',
       food: 'Once in spring and once in summer with balanced fertiliser. Bare minimum.',
-      season: 'Practically dormant in winter — barely water (~100 ml every 3–4 weeks). Resume normal care October.',
+      season: 'Practically dormant in winter. Barely water (~100 ml every 3–4 weeks). Resume normal care October.',
       trouble: 'Mushy leaves → overwatered (the only real risk). Brown crispy tips → cold draft. Yellowing → too much sun or too much water.',
     },
     defaultMood: 'Unflappable. Will outlive your lease.',
@@ -152,10 +152,10 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: true,
     toxicTo: 'both',
     careGuide: {
-      light: 'Tolerates low to bright indirect light. Avoid direct sun — scorches leaves.',
+      light: 'Tolerates low to bright indirect light. Avoid direct sun. Scorches leaves.',
       water: 'When the top 2–3cm of soil is dry. About 150 ml until drainage. Drooping leaves = thirsty (not overwatered).',
       food: 'Balanced liquid fertiliser every 4 weeks in spring/summer. Skip autumn and winter.',
-      season: 'Summers: water every 5–6 days. Move away from heating vents in winter — dry air causes brown tips. Reduce to every 10–14 days in winter.',
+      season: 'Summers: water every 5–6 days. Move away from heating vents in winter. Dry air causes brown tips. Reduce to every 10–14 days in winter.',
       trouble: 'Yellow leaves → overwatering. Brown tips → low humidity or fluoride in tap water. Leggy vines → insufficient light.',
     },
     defaultMood: 'Reliably enthusiastic, like a golden retriever.',
@@ -175,10 +175,10 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: false,
     careGuide: {
       light: 'Bright indirect light. Tolerates a little direct morning sun. Single-leaf cuttings need stable, gentle conditions.',
-      water: 'Every 10–14 days. About 120 ml. The waxy leaves store water — overwater and they rot.',
+      water: 'Every 10–14 days. About 120 ml. The waxy leaves store water. Overwater and they rot.',
       food: 'Every 4–6 weeks spring/summer with diluted balanced fertiliser.',
       season: 'Very drought tolerant. Reduce to monthly watering in winter. Will survive near a sunny window year-round.',
-      trouble: 'Yellowing leaves → overwatering. Wrinkled leaves → underwatered — give a thorough soak. Not growing → single-leaf cuttings lack a node, so growth is impossible.',
+      trouble: 'Yellowing leaves → overwatering. Wrinkled leaves → underwatered. Give a thorough soak. Not growing → single-leaf cuttings lack a node, so growth is impossible.',
     },
     defaultMood: 'Quietly affectionate. Stores water in her hearts.',
   },
@@ -201,7 +201,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxicTo: 'both',
     careGuide: {
       light: 'Bright indirect. Variegation fades in low light and scorches in direct sun. A north or east-facing window suits her.',
-      water: 'When the top 3 cm dries out. About 150 ml, watered until drainage. She tells the truth — leaves droop when thirsty and perk up within hours of watering.',
+      water: 'When the top 3 cm dries out. About 150 ml, watered until drainage. She tells the truth. Leaves droop when thirsty and perk up within hours of watering.',
       food: 'Half-strength balanced feed monthly through the growing months. Pause from June to August.',
       season: 'Slow growth in winter. Dial back to fortnightly watering. Wipe leaves occasionally to keep variegation showing.',
       trouble: 'Loss of white in new leaves → not enough light. Yellow leaves → soggy roots, ease off. Brown leaf tips → tap water salts or low humidity.',
@@ -223,7 +223,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: true,
     toxicTo: 'both',
     careGuide: {
-      light: 'Bright indirect — more light than her green cousins, to hold the crisp white patches.',
+      light: 'Bright indirect. More light than her green cousins, to hold the crisp white patches.',
       water: 'Allow the top half of the pot to dry. About 120 ml. She forgives a forgotten week more than she forgives a soaking.',
       food: 'Diluted balanced feed every 4 weeks in growing months.',
       season: 'Growth slows by 50% in winter. Stretch waterings to 14 days and skip the feed.',
@@ -247,7 +247,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxicTo: 'both',
     careGuide: {
       light: 'Brighter light keeps her chartreuse glow. In low light she turns greener and the colour drains.',
-      water: 'Top 3 cm dry before watering. The chartreuse leaves darken slightly when thirsty — a useful tell.',
+      water: 'Top 3 cm dry before watering. The chartreuse leaves darken slightly when thirsty. A useful tell.',
       food: 'Monthly half-strength feed October to March.',
       season: 'Slows considerably in cold rooms. Move away from window draughts in winter.',
       trouble: 'Pale, washed-out leaves → too much direct sun. Dark green new growth → not enough light.',
@@ -270,7 +270,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxicTo: 'both',
     careGuide: {
       light: 'Bright indirect for the boldest yellow streak down the middle. Tolerates lower light but the variegation pales.',
-      water: 'When the top third of soil is dry. About 140 ml — she likes a thorough drink then a slight dry-out.',
+      water: 'When the top third of soil is dry. About 140 ml. She likes a thorough drink then a slight dry-out.',
       food: 'Half-strength liquid feed every 4 weeks while growing.',
       season: 'Steady through autumn and winter if kept warm. Drop watering frequency by a third in cool months.',
       trouble: 'Long gap between leaves → reaching for light, move closer to a window. Black leaf stems → root rot, repot in fresh dry mix.',
@@ -292,7 +292,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: true,
     toxicTo: 'both',
     careGuide: {
-      light: 'Bright indirect — the pinstripes lose definition in dim corners. No direct sun.',
+      light: 'Bright indirect. The pinstripes lose definition in dim corners. No direct sun.',
       water: 'Keep the top 2 cm moist, not waterlogged. She prefers consistency above all else.',
       food: 'Balanced feed at quarter strength every 3 weeks in spring and summer.',
       season: 'Slows through winter. A pebble tray nearby helps when home heating dries the air.',
@@ -316,7 +316,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxicTo: 'both',
     careGuide: {
       light: 'Bright indirect, edging toward filtered direct morning. The pink fades in low light and reverts toward dark green.',
-      water: 'Top 3 cm dry, then water thoroughly. Sensitive to both extremes — neither bone-dry nor sodden.',
+      water: 'Top 3 cm dry, then water thoroughly. Sensitive to both extremes. Neither bone-dry nor sodden.',
       food: 'Diluted balanced feed fortnightly in growing months. Hold back in winter entirely.',
       season: 'Likes warmth year-round. Below 16°C she sulks and stops producing new pink.',
       trouble: 'No pink in new leaves → cut back the all-green half-moon leaves to coax variegation forward. Drooping → check the soil moisture before adding more water.',
@@ -364,7 +364,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
       light: 'Low to medium indirect. Patterned varieties want a touch more light to keep their patterns sharp.',
       water: 'Top 3 cm dry between waterings. About 180 ml. She is mild-tempered and tells you clearly when thirsty.',
       food: 'Diluted balanced feed monthly through warm months.',
-      season: 'Slows in winter. Watch for cold spots near windows — she dislikes draughts.',
+      season: 'Slows in winter. Watch for cold spots near windows. She dislikes draughts.',
       trouble: 'Yellow edges → cold draught or chlorinated water. Drooping leaves → overwatered, pull back.',
     },
     defaultMood: 'Resilient. Has seen offices and stayed dignified.',
@@ -384,8 +384,8 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: true,
     toxicTo: 'both',
     careGuide: {
-      light: 'Bright indirect for deep burgundy leaves. Some morning sun is fine — afternoon direct will scorch.',
-      water: 'Top 3 cm dry before watering. Drains thoroughly — never leave her sitting in water.',
+      light: 'Bright indirect for deep burgundy leaves. Some morning sun is fine. Afternoon direct will scorch.',
+      water: 'Top 3 cm dry before watering. Drains thoroughly. Never leave her sitting in water.',
       food: 'Balanced feed every 4 weeks in growing months.',
       season: 'Steady year-round in a warm room. Dial back about 30% in winter.',
       trouble: 'Dropping leaves → sudden move or cold draught. Sticky leaves → check undersides for scale insect.',
@@ -407,11 +407,11 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: true,
     toxicTo: 'both',
     careGuide: {
-      light: 'As bright as you can give her — direct sun for at least 4 hours encourages flowering eventually.',
+      light: 'As bright as you can give her. Direct sun for at least 4 hours encourages flowering eventually.',
       water: 'Deep soak when the top 4 cm is dry. About 400 ml. The split leaves are normal and add to her charm.',
       food: 'Balanced feed fortnightly through October to April. Halt entirely in winter.',
       season: 'Slows but stays active. Tolerates short cool spells but recovers fastest above 18°C.',
-      trouble: 'Brown crispy edges → low humidity or salt buildup in soil — flush the pot. No flowers → she needs to be root-bound and several years old.',
+      trouble: 'Brown crispy edges → low humidity or salt buildup in soil. Flush the pot. No flowers → she needs to be root-bound and several years old.',
     },
     defaultMood: 'Grand and ungoverned. Imagines herself in a courtyard.',
   },
@@ -429,7 +429,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     light: 'medium',
     toxic: false,
     careGuide: {
-      light: 'Bright indirect only — direct sun bleaches the silver stripes within days.',
+      light: 'Bright indirect only. Direct sun bleaches the silver stripes within days.',
       water: 'Keep evenly moist with filtered or rainwater. Tap water salts give her crisp edges. About 220 ml every 5 days.',
       food: 'Quarter-strength balanced feed every 3 weeks in growing months.',
       season: 'Slows in winter but still hates dry indoor air. A humidifier or pebble tray nearby is non-negotiable in heated homes.',
@@ -451,10 +451,10 @@ export const SPECIES_DB: SpeciesProfile[] = [
     light: 'medium',
     toxic: false,
     careGuide: {
-      light: 'Bright indirect. She closes her leaves at night and reopens at dawn — a small daily miracle.',
+      light: 'Bright indirect. She closes her leaves at night and reopens at dawn. A small daily miracle.',
       water: 'Evenly moist. Filtered or rainwater only. About 180 ml every 5 days.',
       food: 'Diluted feed monthly in growing season.',
-      season: 'Drops humidity tolerance in winter — keep her humid even when watering less.',
+      season: 'Drops humidity tolerance in winter. Keep her humid even when watering less.',
       trouble: 'Curling leaves → thirsty or cold. Yellow lower leaves → overwatered or stagnant air. Brown edges → tap water, switch sources.',
     },
     defaultMood: 'Folds her leaves at night like she means it.',
@@ -474,9 +474,9 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: false,
     careGuide: {
       light: 'Bright indirect best, but tolerates a wide range. Variegation fades in dim corners.',
-      water: 'Top 2 cm dry before watering. Sensitive to fluoride in tap water — leave water out overnight or use filtered.',
+      water: 'Top 2 cm dry before watering. Sensitive to fluoride in tap water. Leave water out overnight or use filtered.',
       food: 'Half-strength balanced feed monthly. Too much fertiliser stops her producing babies.',
-      season: 'Steady through winter. Produces flower stalks and pups in spring — pot these up or leave them dangling.',
+      season: 'Steady through winter. Produces flower stalks and pups in spring. Pot these up or leave them dangling.',
       trouble: 'Brown leaf tips → fluoride or fertiliser buildup, flush the pot. No babies → may need to be root-bound and given longer days.',
     },
     defaultMood: 'Generous. Always making babies, never asks for thanks.',
@@ -518,7 +518,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: false,
     careGuide: {
       light: 'Soft indirect light. Anything direct burns her delicate fronds within an hour.',
-      water: 'Never let her dry out — she will crash dramatically and may not recover. Filtered water at room temperature.',
+      water: 'Never let her dry out. She will crash dramatically and may not recover. Filtered water at room temperature.',
       food: 'Very weak feed monthly in growing months. Strong fertiliser will scorch her roots.',
       season: 'Year-round attention. Lift her into the bathroom while you shower for a humidity boost.',
       trouble: 'All fronds gone crispy → she dried out, cut everything back to the base and keep watering, new fronds may emerge.',
@@ -562,7 +562,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: false,
     careGuide: {
       light: 'Bright indirect. Tolerates lower light than most palms, which is why she ends up in hotel lobbies.',
-      water: 'Top 3 cm dry, then water thoroughly. Sensitive to chlorine — let tap water sit a day if your water is treated.',
+      water: 'Top 3 cm dry, then water thoroughly. Sensitive to chlorine. Let tap water sit a day if your water is treated.',
       food: 'Balanced palm feed monthly from October to March.',
       season: 'Slows in winter. Cut watering to every 14 days and stop feeding entirely.',
       trouble: 'Yellow fronds → overwatering, the most common death. Brown tips → low humidity or salts. Spider mites in dry air → mist undersides and wipe.',
@@ -588,7 +588,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxicTo: 'pets',
     careGuide: {
       light: 'Bright direct sun. A south-facing window suits her. Insufficient light makes her leggy and pale.',
-      water: 'Drench-and-dry. Soak thoroughly, then wait until the soil is fully dry — usually 14 days. Less in winter.',
+      water: 'Drench-and-dry. Soak thoroughly, then wait until the soil is fully dry. Usually 14 days. Less in winter.',
       food: 'Cactus feed at half strength every 2 months in growing season.',
       season: 'Reduce watering to once a month in winter. Cooler nights and dry soil can coax small pink-white flowers.',
       trouble: 'Wrinkled leaves → underwatered, give a soak. Mushy stem at base → overwatered, repot in dry mix and cut off rot.',
@@ -633,7 +633,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: false,
     careGuide: {
       light: 'Direct sun, the more the better. South-facing windowsill is her favourite real estate.',
-      water: 'Soak the soil thoroughly, then leave bone dry for 2 weeks. Water from below if you can — wet rosettes rot.',
+      water: 'Soak the soil thoroughly, then leave bone dry for 2 weeks. Water from below if you can. Wet rosettes rot.',
       food: 'Diluted cactus feed once or twice a year, no more.',
       season: 'Cut watering to once a month in winter. Cooler nights with bright light bring out her pink edges.',
       trouble: 'Stretching toward the window → not enough light, she will become leggy. Mushy bottom leaves → overwatering. Pups around the base → propagate them.',
@@ -656,7 +656,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxicTo: 'both',
     careGuide: {
       light: 'Bright indirect with a few hours of soft morning sun. The pearls plump up in good light.',
-      water: 'Soak then dry completely. Watering from above is fine — just avoid sitting water.',
+      water: 'Soak then dry completely. Watering from above is fine. Just avoid sitting water.',
       food: 'Diluted cactus feed every 6 weeks in growing months.',
       season: 'Once a month in winter. Tiny white pom-pom flowers appear in autumn under good conditions.',
       trouble: 'Shriveled pearls → underwatered. Mushy pearls → overwatered, dial back urgently. Bald patches → broken strands, replant trimmings.',
@@ -678,7 +678,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: false,
     careGuide: {
       light: 'Bright indirect. Unlike desert cacti she dislikes harsh direct sun.',
-      water: 'Top 2 cm dry between waterings. She likes more water than most cacti — her ancestors are jungle dwellers.',
+      water: 'Top 2 cm dry between waterings. She likes more water than most cacti. Her ancestors are jungle dwellers.',
       food: 'Balanced feed monthly in growing months. Stop 6 weeks before you want flowers.',
       season: 'To flower, give her 14 hours of darkness and cool nights (~13°C) for 6 weeks in autumn. She does the rest.',
       trouble: 'Dropped buds → soil dried out or she was moved during budding. No flowers → not enough dark in autumn.',
@@ -703,10 +703,10 @@ export const SPECIES_DB: SpeciesProfile[] = [
     toxic: false,
     careGuide: {
       light: 'Bright indirect with some direct morning sun. Good light is the single biggest factor in getting her to flower.',
-      water: 'Top half of pot dry between waterings. Her thick leaves store water — she handles a missed week better than a soggy one.',
+      water: 'Top half of pot dry between waterings. Her thick leaves store water. She handles a missed week better than a soggy one.',
       food: 'Diluted bloom feed every 3 weeks in growing season.',
       season: 'Reduce watering by a third in winter. Do not move her once buds appear, she will drop them.',
-      trouble: 'No flowers → not enough light, or being repotted too often. Yellow leaves → overwatering. Sticky residue → sap from flower spurs (peduncles), do not cut these off — she reblooms from the same spur.',
+      trouble: 'No flowers → not enough light, or being repotted too often. Yellow leaves → overwatering. Sticky residue → sap from flower spurs (peduncles), do not cut these off. She reblooms from the same spur.',
     },
     defaultMood: 'Patient. Plots her flowers in private for months.',
   },
@@ -729,7 +729,7 @@ export const SPECIES_DB: SpeciesProfile[] = [
       water: 'Keep evenly moist but not wet. Top 1 cm of soil should be dry before watering.',
       food: 'Diluted bloom feed every 2 weeks in growing months.',
       season: 'Slows in winter. Reduce watering by a quarter and stop feeding.',
-      trouble: 'No flowers → low light or too much fertiliser nitrogen — switch to a bloom-specific feed. Yellow leaves → overwatering. Brown leaf tips → low humidity.',
+      trouble: 'No flowers → low light or too much fertiliser nitrogen. Switch to a bloom-specific feed. Yellow leaves → overwatering. Brown leaf tips → low humidity.',
     },
     defaultMood: 'Lipstick-red and unembarrassed about it.',
   },
@@ -747,8 +747,8 @@ export const SPECIES_DB: SpeciesProfile[] = [
     light: 'medium',
     toxic: false,
     careGuide: {
-      light: 'Bright indirect, east-facing window ideal. Leaves should be a healthy mid-green — dark green means too little light.',
-      water: 'Soak the bark mix once a week, then let it dry almost completely. Three ice cubes is a myth — give her a proper drink.',
+      light: 'Bright indirect, east-facing window ideal. Leaves should be a healthy mid-green. Dark green means too little light.',
+      water: 'Soak the bark mix once a week, then let it dry almost completely. Three ice cubes is a myth. Give her a proper drink.',
       food: 'Quarter-strength orchid feed weekly while in active growth, monthly otherwise.',
       season: 'After her flowers drop, cut the spike to a node and a fresh spike may emerge. Cooler nights in autumn (~16°C) help reflower.',
       trouble: 'Yellow lower leaves → natural, she sheds the old. Wrinkled leaves → roots may be rotted, check by lifting from the pot. No new flowers → not enough light or no cool spell.',
