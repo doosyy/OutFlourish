@@ -421,7 +421,7 @@ When the meter is in an overdue state (Plant Detail), it gets a 3px terracotta b
 
 ## 11 · Edge cases
 
-- **Long plant names** — truncate with ellipsis after 22 chars on Home rows, 28 chars on Plant Detail. *(Not yet enforced — Phase 4.)*
+- **Long plant names** — ✓ Phase 4 enforced. Home AlmanacRow uses `truncate`; Home featured headline scales down 34→28 and clamps to 2 lines; Plant Detail H1 scales 52→44→38 at length thresholds 14/22 chars. Eyebrow lines truncate with ellipsis.
 - **Long species names** — italic line wraps to 2 lines max. *(Currently truncates via `text-overflow: ellipsis` on AlmanacRow.)*
 - **0 plants total** → `EmptyHome` renders (Home Screen built-in).
 - **0 plants in any room** → `EmptyRoomState` *(designed; not yet implemented)*.
@@ -481,6 +481,17 @@ Tracked for future work. None block the current build.
 - Long plant name truncation across Home and Plant Detail ✓
 - Onboarding region picker overlap fix ✓
 - NFC integration (read + write) via free Exxili plugin ✓
+
+### Wireframe review pass (10 fixes, commits d92547e + 711fc7c)
+- Plant Detail floating pill no longer overlaps scroll content (paddingBottom now `max(160px, calc(var(--sab) + 140px))`)
+- Plant Detail status pill no longer reads redundantly — was "Overdue · 4 days overdue", now just "4 days overdue" with the coloured dot
+- `ChevronGlyph` accepts `direction` prop (left/right/up/down). Forward-nav rows in Settings use `direction="right"`; back buttons keep default left
+- Home featured eyebrow + AlmanacRow secondary line both truncate with ellipsis (no more "ROOM" wrapping alone)
+- Species result rows show a uniform single-line summary (`BEGINNER · MEDIUM HUMIDITY · TOXIC`) instead of inconsistent wrapping tags
+- "Pet mode" hint shortened to fit one line
+- Manage Rooms gets a quiet italic footer below "+ Add a room" instead of empty cream
+- Sparkline today-dot uses `overflow: visible` so the pulse doesn't clip at the right edge
+- Home featured plant grid switched from `items-center` to `items-start` — no more cream dead-space below the photo when text column runs longer
 
 ---
 
