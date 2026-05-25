@@ -461,7 +461,7 @@ Tracked for future work. None block the current build.
 1. **EmptyRoomState** — designed but not implemented.
 2. **Editable Hemisphere/region pickers in Settings** — currently static Pills, not tappable.
 3. **Editable reminder time / quiet hours pickers** — currently static Pills.
-4. **Species library expansion** — 6 species → 150. SPECIES.md prompt template can batch-generate.
+4. **Species library expansion** — **IN PROGRESS · 91/150**. Batches 1-3 shipped (foliage, aroids, succulents, cacti, flowering, statement, edible-adjacent). Remaining ~59 split across two more batches: Batch 4 (Pilea, Syngonium varieties, more philodendrons, ficus varieties, caladium, carnivorous set, foliage workhorses); Batch 5 (specialty aroids like Anthurium Clarinervium, Philodendron Gloriosum, Alocasia Stingray, Monstera Albo; Lucky Bamboo; Pachira braids; Tillandsia air plants; Clivia; Plumeria; remaining common houseplants).
 5. **Notification appearance design** — iOS uses default banner; rich notification not yet designed.
 6. **Photo cleanup on swap** — `photos.ts` writes new file each time but doesn't delete the old one. Minor storage leak; add `photoPath` to Plant for tracking.
 7. **NFC preview side-effect** — Settings → Preview NFC moment fires real `logWater()` mid-animation. Acceptable for v1 (Undo dismisses), but could pass a `previewMode` prop to NfcMoment to suppress.
