@@ -71,7 +71,7 @@ plant-care/
     ├── index.css              # Tailwind + body bg + glass utilities + focus ring
     ├── tokens.ts              # PCT colour constants (OKLCH strings) for inline SVG/style
     ├── store.ts               # ALL business logic — entities, repository, derived helpers
-    ├── speciesDb.ts           # 6-species library + search helpers
+    ├── speciesDb.ts           # 150-species library + search helpers
     ├── App.tsx                # Router, NFC session, deep links, onboarding gate, sheets/toast
     ├── HomeScreen.tsx         # Hybrid layout + HomeByRoom + EmptyHome
     ├── PlantDetail.tsx        # Hero photo, overlapping meter, sparkline, accordion, diary, edit
@@ -461,7 +461,7 @@ Tracked for future work. None block the current build.
 1. **EmptyRoomState** — designed but not implemented.
 2. **Editable Hemisphere/region pickers in Settings** — currently static Pills, not tappable.
 3. **Editable reminder time / quiet hours pickers** — currently static Pills.
-4. **Species library expansion** — **IN PROGRESS · 91/150**. Batches 1-3 shipped (foliage, aroids, succulents, cacti, flowering, statement, edible-adjacent). Remaining ~59 split across two more batches: Batch 4 (Pilea, Syngonium varieties, more philodendrons, ficus varieties, caladium, carnivorous set, foliage workhorses); Batch 5 (specialty aroids like Anthurium Clarinervium, Philodendron Gloriosum, Alocasia Stingray, Monstera Albo; Lucky Bamboo; Pachira braids; Tillandsia air plants; Clivia; Plumeria; remaining common houseplants).
+4. **Species library expansion** — **DONE · 150/150**. Five batches shipped covering foliage, aroids, succulents, cacti, flowering, statement, palms, ferns, carnivorous, specialty aroids (Anthurium Clarinervium, Philodendron Gloriosum/Melanochrysum, Alocasia Stingray/Dragon Scale, Monstera Albo/Thai Constellation), Tillandsias, Hoyas, Pothos varieties, holiday cacti, Echeverias, Aeonium, Sago Palm. All entries have empty photo strings (gradient fallback) and full 5-field care guides. Photos to be supplied later.
 5. **Notification appearance design** — iOS uses default banner; rich notification not yet designed.
 6. **Photo cleanup on swap** — `photos.ts` writes new file each time but doesn't delete the old one. Minor storage leak; add `photoPath` to Plant for tracking.
 7. **NFC preview side-effect** — Settings → Preview NFC moment fires real `logWater()` mid-animation. Acceptable for v1 (Undo dismisses), but could pass a `previewMode` prop to NfcMoment to suppress.
