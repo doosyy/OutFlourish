@@ -5,7 +5,7 @@
 // HomeByRoom alternate layout: when settings.rooms.groupHomeByRoom === true,
 // renders plants grouped under room headers with light tags.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { WaterAllSheet } from './sheets'
 import {
@@ -55,17 +55,28 @@ export default function HomeScreen() {
     return () => clearInterval(t)
   }, [])
 
-  // Augment each plant with derived state, respecting room-light + season
-  const lightFor = (roomName?: string) => rooms.find(r => r.name === roomName)?.light
-  const augmented = plants.map(p => augment(p, {
-    now,
-    hemisphere: settings.season.hemisphere,
-    lightAware: settings.rooms.lightAwareCare,
-    roomLight: lightFor(p.room),
-  }))
+  // Augment + sort + filter once per (plants, settings, rooms, now) change.
+  // Without memoization the home screen recomputes this on every render,
+  // including renders triggered by unrelated state (toast dismiss, sheets, etc).
+  const { sorted, thirsty, happy, isEmpty } = useMemo(() => {
+    const lightFor = (roomName?: string) => rooms.find(r => r.name === roomName)?.light
+    const augmented = plants.map(p => augment(p, {
+      now,
+      hemisphere: settings.season.hemisphere,
+      lightAware: settings.rooms.lightAwareCare,
+      roomLight: lightFor(p.room),
+    }))
+    const sorted = [...augmented].sort((a, b) => urgencyRank(a) - urgencyRank(b))
+    return {
+      sorted,
+      thirsty: sorted.filter(p => p.dueState === 'overdue' || p.dueState === 'soon'),
+      happy:   sorted.filter(p => p.dueState === 'ok'       || p.dueState === 'fresh'),
+      isEmpty: augmented.length === 0,
+    }
+  }, [plants, rooms, settings.season.hemisphere, settings.rooms.lightAwareCare, now])
 
   // Empty state — first launch
-  if (isLoaded && augmented.length === 0) {
+  if (isLoaded && isEmpty) {
     return <EmptyHome onAdd={() => navigate('/add')} />
   }
 
@@ -76,11 +87,6 @@ export default function HomeScreen() {
       </div>
     )
   }
-
-  // Sort: most-urgent first
-  const sorted = [...augmented].sort((a, b) => urgencyRank(a) - urgencyRank(b))
-  const thirsty = sorted.filter(p => p.dueState === 'overdue' || p.dueState === 'soon')
-  const happy = sorted.filter(p => p.dueState === 'ok' || p.dueState === 'fresh')
 
   if (settings.rooms.groupHomeByRoom) {
     return <HomeByRoom now={now} thirsty={thirsty} sorted={sorted} />

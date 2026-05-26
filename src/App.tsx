@@ -1,18 +1,37 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { App as CapApp } from '@capacitor/app'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { NFC } from '@exxili/capacitor-nfc'
 import { useStore, type Plant } from './store'
+import { PCT } from './tokens'
 import HomeScreen from './HomeScreen'
 import PlantDetail from './PlantDetail'
-import AddPlantScreen from './AddPlantScreen'
-import SettingsScreen from './SettingsScreen'
-import PrivacyPolicy from './PrivacyPolicy'
-import ManageRoomsScreen from './ManageRoomsScreen'
-import Onboarding from './Onboarding'
 import NfcMoment from './NfcMoment'
 import { AlreadyWateredSheet, Toast, ErrorSheet, AmountOnScanSheet, BlankTagSheet } from './sheets'
+
+// Lazy-loaded: rare-path routes carved out of the initial bundle.
+// Each chunk only downloads on first navigation to that route.
+const AddPlantScreen = lazy(() => import('./AddPlantScreen'))
+const SettingsScreen = lazy(() => import('./SettingsScreen'))
+const PrivacyPolicy = lazy(() => import('./PrivacyPolicy'))
+const ManageRoomsScreen = lazy(() => import('./ManageRoomsScreen'))
+const Onboarding = lazy(() => import('./Onboarding'))
+
+function RouteFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: PCT.cream }}>
+      <div style={{
+        fontFamily: '"DM Serif Display", Georgia, serif',
+        fontStyle: 'italic', fontSize: 16, color: PCT.inkFaint,
+      }}>One moment…</div>
+    </div>
+  )
+}
+
+const lazyRoute = (node: React.ReactNode) => (
+  <Suspense fallback={<RouteFallback />}>{node}</Suspense>
+)
 
 function parsePlantIdFromNdefPayload(payload: number[]): string | null {
   if (!payload || payload.length < 3) return null
@@ -26,10 +45,10 @@ function parsePlantIdFromNdefPayload(payload: number[]): string | null {
 const router = createHashRouter([
   { path: '/', element: <HomeScreen /> },
   { path: '/plant/:id', element: <PlantDetail /> },
-  { path: '/add', element: <AddPlantScreen /> },
-  { path: '/settings', element: <SettingsScreen /> },
-  { path: '/privacy', element: <PrivacyPolicy /> },
-  { path: '/rooms', element: <ManageRoomsScreen /> },
+  { path: '/add', element: lazyRoute(<AddPlantScreen />) },
+  { path: '/settings', element: lazyRoute(<SettingsScreen />) },
+  { path: '/privacy', element: lazyRoute(<PrivacyPolicy />) },
+  { path: '/rooms', element: lazyRoute(<ManageRoomsScreen />) },
 ])
 
 export default function App() {
@@ -144,9 +163,11 @@ export default function App() {
 
       {/* Onboarding — first launch only */}
       {isLoaded && !settings.onboardingComplete && (
-        <Onboarding onFinish={async ({ hemisphere, region }) => {
-          await completeOnboarding({ hemisphere, region })
-        }} />
+        <Suspense fallback={<RouteFallback />}>
+          <Onboarding onFinish={async ({ hemisphere, region }) => {
+            await completeOnboarding({ hemisphere, region })
+          }} />
+        </Suspense>
       )}
 
       {/* Already-watered confirmation */}

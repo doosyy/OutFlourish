@@ -10,7 +10,8 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { NFC } from '@exxili/capacitor-nfc'
 import { useStore } from './store'
-import { searchSpecies, type SpeciesProfile, type Difficulty } from './speciesDb'
+import type { SpeciesProfile, Difficulty } from './speciesDb'
+import { useSpeciesDb } from './speciesLoader'
 import { PCT } from './tokens'
 import { TopBar, FormField } from './components/UI'
 import PhotoPicker from './components/PhotoPicker'
@@ -34,7 +35,8 @@ export default function AddPlantScreen() {
     setPhotoPath(newPath)
   }
 
-  const results = useMemo(() => searchSpecies(query), [query])
+  const speciesDb = useSpeciesDb()
+  const results = useMemo(() => speciesDb ? speciesDb.searchSpecies(query) : [], [query, speciesDb])
 
   const handleBack = () => {
     if (selected) {
@@ -158,7 +160,7 @@ export default function AddPlantScreen() {
           fontFamily: 'ui-monospace, "SF Mono", monospace',
           fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
           color: PCT.terracotta, marginBottom: 6,
-        }}>The library · {results.length === 0 ? 'no matches' : `${results.length} ${results.length === 1 ? 'match' : 'matches'}`}</div>
+        }}>The library · {!speciesDb ? 'loading…' : results.length === 0 ? 'no matches' : `${results.length} ${results.length === 1 ? 'match' : 'matches'}`}</div>
         <h1 style={{
           margin: 0,
           fontFamily: '"DM Serif Display", Georgia, serif',
@@ -198,7 +200,14 @@ export default function AddPlantScreen() {
 
       {/* Results */}
       <div className="px-5.5">
-        {results.length === 0 ? (
+        {!speciesDb ? (
+          <div className="text-center py-6" style={{
+            fontFamily: '"DM Serif Display", Georgia, serif',
+            fontStyle: 'italic', fontSize: 15, color: PCT.inkFaint,
+          }}>
+            Loading the library…
+          </div>
+        ) : results.length === 0 ? (
           <div className="text-center py-6" style={{
             fontFamily: '"DM Serif Display", Georgia, serif',
             fontStyle: 'italic', fontSize: 16, color: PCT.inkSoft,

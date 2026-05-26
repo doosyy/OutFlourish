@@ -20,7 +20,7 @@ import {
   type WaterLog,
 } from './store'
 import { PCT, accentFor } from './tokens'
-import { getSpeciesById } from './speciesDb'
+import { useSpeciesDb, getCachedSpeciesDb } from './speciesLoader'
 import PlantPhotoMeter from './components/PlantPhotoMeter'
 import HydrationSparkline from './components/HydrationSparkline'
 import { AccordionRow, GlassCircle, FormField } from './components/UI'
@@ -98,7 +98,9 @@ export default function PlantDetail() {
   const accent = accentFor(hydration)
   const dueLabel = getDueLabel(plant, opts)
   const dueState = getDueState(plant, opts)
-  const species = plant.speciesId ? getSpeciesById(plant.speciesId) : undefined
+  const speciesDb = useSpeciesDb()
+  const species = speciesDb && plant.speciesId ? speciesDb.getSpeciesById(plant.speciesId) : undefined
+  const isLoadingSpecies = !!plant.speciesId && !speciesDb
   const existingRooms = rooms.map(r => r.name)
 
   return (
@@ -396,7 +398,7 @@ export default function PlantDetail() {
             <div style={{ height: 1, background: `${PCT.ink}18` }} />
           </div>
         )}
-        {!species && (
+        {!species && !isLoadingSpecies && (
           <div className="mt-7" style={{ borderTop: `1px solid ${PCT.ink}18` }}>
             <NfcAccordionRow plant={plant} />
             <div className="py-3" style={{ borderTop: `1px solid ${PCT.ink}18` }}>
@@ -925,9 +927,11 @@ function EditPlantForm({ plant, existingRooms, onClose, onDelete }: {
     setPhotoPath(newPath)
   }
 
-  // Species photo to revert to (falls back to existing photo if no species linked)
+  // Species photo to revert to (falls back to existing photo if no species linked).
+  // Uses the cached module to stay synchronous; speciesDb is already loaded by
+  // the time the edit form opens (page render preloads it).
   const speciesPhoto = plant.speciesId
-    ? getSpeciesById(plant.speciesId)?.photo ?? plant.photo
+    ? getCachedSpeciesDb()?.getSpeciesById(plant.speciesId)?.photo ?? plant.photo
     : plant.photo
 
   const handleSubmit = async (e: React.FormEvent) => {
