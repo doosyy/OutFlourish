@@ -1,15 +1,12 @@
 // BlankTagSheet — appears when a blank NFC tag is held to the phone.
 // Two modes:
 //   1. Chooser: "Pair to an existing plant" vs "Add a new plant"
-//   2. Picker:  scroll list of plants. Tapping one triggers the writeNDEF
-//               session (iOS shows its own scan modal). On success the
-//               sheet's onPaired callback fires.
-//
-// Writing happens inside this sheet so the iOS scan modal is bound to the
-// user's tap (a fresh user gesture, which iOS Core NFC requires).
+//   2. Picker:  scroll list of plants. Tapping one closes the sheet and
+//               hands the selected plant up to the parent, which then
+//               opens PairTagOverlay (a full-screen instruction view)
+//               and triggers NFC.writeNDEF from there.
 
 import { useState } from 'react'
-import { NFC } from '@exxili/capacitor-nfc'
 import { type Plant } from '../store'
 import { PCT } from '../tokens'
 import { BottomSheet } from '../components/UI'
@@ -17,6 +14,8 @@ import { NFCGlyph, PlusGlyph, LeafGlyph, ChevronGlyph } from '../components/Glyp
 
 interface Props {
   plants: Plant[]
+  /** Fired when the user picks a plant to pair. Parent should close the
+   *  sheet and open PairTagOverlay with this plant. */
   onPairExisting: (plant: Plant) => void
   onCreateNew: () => void
   onCancel: () => void
@@ -24,26 +23,9 @@ interface Props {
 
 export default function BlankTagSheet({ plants, onPairExisting, onCreateNew, onCancel }: Props) {
   const [mode, setMode] = useState<'choose' | 'pick'>('choose')
-  const [pairing, setPairing] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
-  const handlePick = async (plant: Plant) => {
-    setError(null)
-    setPairing(plant.id)
-    try {
-      // NDEF Well Known Text record: status byte (lang code length) + 'en' + plant id
-      const langCode = 'en'
-      const text = plant.id
-      const status = langCode.length & 0x3f
-      const encoder = new TextEncoder()
-      const payload = [status, ...encoder.encode(langCode), ...encoder.encode(text)]
-      await NFC.writeNDEF({ records: [{ type: 'T', payload }], rawMode: true })
-      onPairExisting(plant)
-    } catch (err) {
-      console.warn('[NFC] pair-existing write failed:', err)
-      setError('Could not write the tag. Try holding it steady on the back of the phone.')
-      setPairing(null)
-    }
+  const handlePick = (plant: Plant) => {
+    onPairExisting(plant)
   }
 
   return (
@@ -142,18 +124,6 @@ export default function BlankTagSheet({ plants, onPairExisting, onCreateNew, onC
 
       {mode === 'pick' && (
         <>
-          {error && (
-            <div className="mb-3" style={{
-              padding: '12px 14px',
-              background: PCT.thirsty + '14',
-              border: `1px solid ${PCT.thirsty}33`,
-              borderRadius: 14,
-              fontFamily: 'Newsreader, Georgia, serif',
-              fontSize: 13, color: PCT.thirsty,
-              lineHeight: 1.35,
-            }}>{error}</div>
-          )}
-
           <div style={{
             maxHeight: 320,
             overflowY: 'auto',
@@ -162,64 +132,59 @@ export default function BlankTagSheet({ plants, onPairExisting, onCreateNew, onC
             borderRadius: 18,
             marginBottom: 14,
           }}>
-            {plants.map((p, i) => {
-              const isPairing = pairing === p.id
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => handlePick(p)}
-                  disabled={!!pairing}
-                  className="w-full flex items-center gap-3 text-left disabled:opacity-50"
-                  style={{
-                    padding: '12px 16px',
-                    background: 'transparent',
-                    borderTop: i === 0 ? 'none' : `1px solid ${PCT.ink}10`,
-                  }}
-                >
-                  <div className="flex-shrink-0" style={{
-                    width: 36, height: 36, borderRadius: 12,
-                    background: `linear-gradient(135deg, ${PCT.oliveSoft}, ${PCT.terracottaSoft})`,
-                    overflow: 'hidden',
-                  }}>
-                    {p.photo && (
-                      <img src={p.photo} alt="" className="w-full h-full object-cover"
-                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
+            {plants.map((p, i) => (
+              <button
+                key={p.id}
+                onClick={() => handlePick(p)}
+                className="w-full flex items-center gap-3 text-left"
+                style={{
+                  padding: '12px 16px',
+                  background: 'transparent',
+                  borderTop: i === 0 ? 'none' : `1px solid ${PCT.ink}10`,
+                }}
+              >
+                <div className="flex-shrink-0" style={{
+                  width: 36, height: 36, borderRadius: 12,
+                  background: `linear-gradient(135deg, ${PCT.oliveSoft}, ${PCT.terracottaSoft})`,
+                  overflow: 'hidden',
+                }}>
+                  {p.photo && (
+                    <img src={p.photo} alt="" className="w-full h-full object-cover"
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div style={{
+                    fontFamily: '"DM Serif Display", Georgia, serif',
+                    fontSize: 17, lineHeight: 1.1, color: PCT.ink,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{p.name}</div>
+                  {p.species && (
                     <div style={{
                       fontFamily: '"DM Serif Display", Georgia, serif',
-                      fontSize: 17, lineHeight: 1.1, color: PCT.ink,
+                      fontStyle: 'italic', fontSize: 12, color: PCT.inkSoft,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{p.name}</div>
-                    {p.species && (
-                      <div style={{
-                        fontFamily: '"DM Serif Display", Georgia, serif',
-                        fontStyle: 'italic', fontSize: 12, color: PCT.inkSoft,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>{p.species}</div>
-                    )}
-                  </div>
-                  {p.nfcTagId && (
-                    <span style={{
-                      fontFamily: 'ui-monospace, "SF Mono", monospace',
-                      fontSize: 9, letterSpacing: 1.3, color: PCT.inkFaint,
-                      textTransform: 'uppercase',
-                    }}>paired</span>
+                    }}>{p.species}</div>
                   )}
+                </div>
+                {p.nfcTagId && (
                   <span style={{
-                    fontFamily: '"DM Serif Display", Georgia, serif',
-                    fontStyle: 'italic', fontSize: 13, color: isPairing ? PCT.terracotta : PCT.inkFaint,
-                  }}>{isPairing ? 'pairing…' : 'pair →'}</span>
-                </button>
-              )
-            })}
+                    fontFamily: 'ui-monospace, "SF Mono", monospace',
+                    fontSize: 9, letterSpacing: 1.3, color: PCT.inkFaint,
+                    textTransform: 'uppercase',
+                  }}>paired</span>
+                )}
+                <span style={{
+                  fontFamily: '"DM Serif Display", Georgia, serif',
+                  fontStyle: 'italic', fontSize: 13, color: PCT.inkFaint,
+                }}>pair →</span>
+              </button>
+            ))}
           </div>
 
           <div className="flex gap-2.5">
             <button
-              onClick={() => { setMode('choose'); setError(null) }}
-              disabled={!!pairing}
+              onClick={() => setMode('choose')}
               className="flex-1 text-center"
               style={{
                 padding: 14,
@@ -234,7 +199,6 @@ export default function BlankTagSheet({ plants, onPairExisting, onCreateNew, onC
             </button>
             <button
               onClick={onCancel}
-              disabled={!!pairing}
               className="flex-1 text-center"
               style={{
                 padding: 14,

@@ -8,6 +8,7 @@ import { PCT } from './tokens'
 import HomeScreen from './HomeScreen'
 import PlantDetail from './PlantDetail'
 import NfcMoment from './NfcMoment'
+import PairTagOverlay from './PairTagOverlay'
 import { AlreadyWateredSheet, Toast, ErrorSheet, AmountOnScanSheet, BlankTagSheet } from './sheets'
 
 // Lazy-loaded: rare-path routes carved out of the initial bundle.
@@ -67,6 +68,8 @@ export default function App() {
   const [amountSheetPlant, setAmountSheetPlant] = useState<Plant | null>(null)
   // Blank-tag chooser — when a tag has no plant id payload
   const [blankTagOpen, setBlankTagOpen] = useState(false)
+  // PairTagOverlay state — opened by the BlankTagSheet plant picker
+  const [pairOverlayPlant, setPairOverlayPlant] = useState<Plant | null>(null)
 
   useEffect(() => {
     load()
@@ -219,10 +222,11 @@ export default function App() {
       {blankTagOpen && (
         <BlankTagSheet
           plants={plants}
-          onPairExisting={async (plant) => {
-            await updatePlant(plant.id, { nfcTagId: plant.id, nfcPairedAt: Date.now() })
+          onPairExisting={(plant) => {
+            // Close the bottom sheet, then open the top-anchored
+            // PairTagOverlay which actually fires the NFC write.
             setBlankTagOpen(false)
-            router.navigate(`/plant/${plant.id}`)
+            setPairOverlayPlant(plant)
           }}
           onCreateNew={() => {
             setBlankTagOpen(false)
@@ -230,6 +234,24 @@ export default function App() {
             router.navigate('/add')
           }}
           onCancel={() => setBlankTagOpen(false)}
+        />
+      )}
+
+      {/* Pair tag overlay — top-anchored instructions while NFC writes */}
+      {pairOverlayPlant && (
+        <PairTagOverlay
+          plant={pairOverlayPlant}
+          onComplete={async (success) => {
+            const plant = pairOverlayPlant
+            setPairOverlayPlant(null)
+            if (!plant) return
+            if (success) {
+              await updatePlant(plant.id, { nfcTagId: plant.id, nfcPairedAt: Date.now() })
+              router.navigate(`/plant/${plant.id}`)
+            } else {
+              setErrorSheet('tag-write-failed')
+            }
+          }}
         />
       )}
 

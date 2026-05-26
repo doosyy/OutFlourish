@@ -8,10 +8,10 @@
 
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { NFC } from '@exxili/capacitor-nfc'
-import { useStore } from './store'
+import { useStore, type Plant } from './store'
 import type { SpeciesProfile, Difficulty } from './speciesDb'
 import { useSpeciesDb } from './speciesLoader'
+import PairTagOverlay from './PairTagOverlay'
 import { PCT } from './tokens'
 import { TopBar, FormField } from './components/UI'
 import PhotoPicker from './components/PhotoPicker'
@@ -55,6 +55,12 @@ export default function AddPlantScreen() {
     setPhotoPath(undefined)
   }
 
+  // When a blank NFC tag was held to the phone before this screen opened,
+  // we save the plant and then hand off to PairTagOverlay so the iOS scan
+  // modal pairs with a fresh user gesture and our instruction text stays
+  // visible above it.
+  const [pairOverlayPlant, setPairOverlayPlant] = useState<Plant | null>(null)
+
   const handleSave = async () => {
     if (!selected || !name.trim() || saving) return
     setSaving(true)
@@ -70,53 +76,52 @@ export default function AddPlantScreen() {
       room: room.trim() || undefined,
       mood: selected.defaultMood,
     })
-    // Pair the blank NFC tag with the new plant.
     if (pendingNfcWrite) {
-      try {
-        // NDEF Well Known Text record: status byte 0x02 (UTF-8, 2-char lang code) + 'en' + payload
-        const langCode = 'en'
-        const text = newPlant.id  // e.g. 'plant_1716629192988'
-        const status = langCode.length & 0x3f
-        const encoder = new TextEncoder()
-        const langBytes = encoder.encode(langCode)
-        const textBytes = encoder.encode(text)
-        const payload = [status, ...langBytes, ...textBytes]
-        await NFC.writeNDEF({
-          records: [{ type: 'T', payload }],
-          rawMode: true,
-        })
-        await updatePlant(newPlant.id, { nfcTagId: newPlant.id, nfcPairedAt: Date.now() })
-        setPendingNfcWrite(false)
-      } catch (err) {
-        console.warn('[NFC] write failed:', err)
-        setErrorSheet('tag-write-failed')
-        setSaving(false)
-        return
-      }
+      // Open the pair overlay; navigation happens after success/failure.
+      setPairOverlayPlant(newPlant)
+      return
+    }
+    navigate('/')
+  }
+
+  const handlePairComplete = async (success: boolean) => {
+    const plant = pairOverlayPlant
+    setPairOverlayPlant(null)
+    if (!plant) { navigate('/'); return }
+    if (success) {
+      await updatePlant(plant.id, { nfcTagId: plant.id, nfcPairedAt: Date.now() })
+      setPendingNfcWrite(false)
+    } else {
+      setErrorSheet('tag-write-failed')
     }
     navigate('/')
   }
 
   if (selected) {
     return (
-      <AddPlantForm
-        selected={selected}
-        name={name}
-        room={room}
-        interval={interval}
-        photo={photo || selected.photo}
-        plantId={draftPlantId}
-        existingRooms={rooms.map(r => r.name)}
-        saving={saving}
-        pendingNfcWrite={pendingNfcWrite}
-        onNameChange={setName}
-        onRoomChange={setRoom}
-        onIntervalChange={setInterval}
-        onPhotoChange={handlePhotoChange}
-        onChangeSpecies={() => setSelected(null)}
-        onBack={handleBack}
-        onSave={handleSave}
-      />
+      <>
+        <AddPlantForm
+          selected={selected}
+          name={name}
+          room={room}
+          interval={interval}
+          photo={photo || selected.photo}
+          plantId={draftPlantId}
+          existingRooms={rooms.map(r => r.name)}
+          saving={saving}
+          pendingNfcWrite={pendingNfcWrite}
+          onNameChange={setName}
+          onRoomChange={setRoom}
+          onIntervalChange={setInterval}
+          onPhotoChange={handlePhotoChange}
+          onChangeSpecies={() => setSelected(null)}
+          onBack={handleBack}
+          onSave={handleSave}
+        />
+        {pairOverlayPlant && (
+          <PairTagOverlay plant={pairOverlayPlant} onComplete={handlePairComplete} />
+        )}
+      </>
     )
   }
 

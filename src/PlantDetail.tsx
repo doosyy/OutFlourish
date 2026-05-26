@@ -22,6 +22,7 @@ import {
 import { PCT, accentFor } from './tokens'
 import { useSpeciesDb, getCachedSpeciesDb } from './speciesLoader'
 import type { SpeciesProfile } from './speciesDb'
+import PairTagOverlay from './PairTagOverlay'
 import PlantPhotoMeter from './components/PlantPhotoMeter'
 import HydrationSparkline from './components/HydrationSparkline'
 import { AccordionRow, GlassCircle, FormField } from './components/UI'
@@ -32,7 +33,6 @@ import {
   ChevronGlyph, EditGlyph, DotsGlyph, DropGlyph, FoodGlyph, RepotGlyph,
   SunGlyph, SeasonGlyph, TroubleGlyph, NFCGlyph,
 } from './components/Glyphs'
-import { NFC } from '@exxili/capacitor-nfc'
 
 const LOG_ICON: Record<WaterLog['type'], React.ComponentType<{ color: string; size: number }>> = {
   water: DropGlyph,
@@ -540,27 +540,21 @@ function NfcAccordionRow({ plant }: { plant: Plant }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [confirmUnpair, setConfirmUnpair] = useState(false)
+  const [pairOverlay, setPairOverlay] = useState(false)
   const paired = !!plant.nfcTagId
 
   const pairLabel = paired
     ? `Paired · ${plant.nfcPairedAt ? new Date(plant.nfcPairedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : 'unknown date'}`
     : 'No tag paired'
 
-  const handlePair = async () => {
-    setBusy(true)
-    try {
-      const langCode = 'en'
-      const text = plant.id
-      const status = langCode.length & 0x3f
-      const encoder = new TextEncoder()
-      const payload = [status, ...encoder.encode(langCode), ...encoder.encode(text)]
-      await NFC.writeNDEF({ records: [{ type: 'T', payload }], rawMode: true })
+  const handlePair = () => setPairOverlay(true)
+
+  const handlePairComplete = async (success: boolean) => {
+    setPairOverlay(false)
+    if (success) {
       await updatePlant(plant.id, { nfcTagId: plant.id, nfcPairedAt: Date.now() })
-    } catch (err) {
-      console.warn('[NFC] plant-detail pair failed:', err)
+    } else {
       setErrorSheet('tag-write-failed')
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -623,8 +617,7 @@ function NfcAccordionRow({ plant }: { plant: Plant }) {
           {!paired && (
             <button
               onClick={handlePair}
-              disabled={busy}
-              className="w-full flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2"
               style={{
                 padding: '14px',
                 background: PCT.terracotta, color: PCT.cream,
@@ -635,7 +628,7 @@ function NfcAccordionRow({ plant }: { plant: Plant }) {
               }}
             >
               <NFCGlyph color={PCT.cream} size={16} />
-              {busy ? 'Hold the sticker steady…' : 'Pair a sticker'}
+              Pair a sticker
             </button>
           )}
 
@@ -695,6 +688,9 @@ function NfcAccordionRow({ plant }: { plant: Plant }) {
               : 'Cheap NTAG213 stickers work best. You can write the same sticker to another plant any time.'}
           </div>
         </div>
+      )}
+      {pairOverlay && (
+        <PairTagOverlay plant={plant} onComplete={handlePairComplete} />
       )}
     </div>
   )
