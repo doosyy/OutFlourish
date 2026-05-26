@@ -29,8 +29,9 @@ import { removeStoredPhoto } from './photos'
 import { WateringSheet } from './sheets'
 import {
   ChevronGlyph, EditGlyph, DotsGlyph, DropGlyph, FoodGlyph, RepotGlyph,
-  SunGlyph, SeasonGlyph, TroubleGlyph,
+  SunGlyph, SeasonGlyph, TroubleGlyph, NFCGlyph,
 } from './components/Glyphs'
+import { NFC } from '@exxili/capacitor-nfc'
 
 const LOG_ICON: Record<WaterLog['type'], React.ComponentType<{ color: string; size: number }>> = {
   water: DropGlyph,
@@ -391,24 +392,28 @@ export default function PlantDetail() {
               title="Season" body={species.careGuide.season} />
             <AccordionRow icon={<TroubleGlyph color={PCT.terracotta} size={18} />}
               title="Troubles" body={species.careGuide.trouble} />
+            <NfcAccordionRow plant={plant} />
             <div style={{ height: 1, background: `${PCT.ink}18` }} />
           </div>
         )}
         {!species && (
-          <div className="mt-7 py-3" style={{ borderTop: `1px solid ${PCT.ink}18` }}>
-            <p style={{
-              fontFamily: 'Newsreader, Georgia, serif',
-              fontSize: 14, color: PCT.inkFaint,
-            }}>
-              No care guide. Custom plant.{' '}
-              <button onClick={() => navigate('/add')} style={{
-                fontFamily: '"DM Serif Display", Georgia, serif',
-                fontStyle: 'italic',
-                color: PCT.terracottaDeep, textDecoration: 'underline',
+          <div className="mt-7" style={{ borderTop: `1px solid ${PCT.ink}18` }}>
+            <NfcAccordionRow plant={plant} />
+            <div className="py-3" style={{ borderTop: `1px solid ${PCT.ink}18` }}>
+              <p style={{
+                fontFamily: 'Newsreader, Georgia, serif',
+                fontSize: 14, color: PCT.inkFaint,
               }}>
-                Search species database →
-              </button>
-            </p>
+                No care guide. Custom plant.{' '}
+                <button onClick={() => navigate('/add')} style={{
+                  fontFamily: '"DM Serif Display", Georgia, serif',
+                  fontStyle: 'italic',
+                  color: PCT.terracottaDeep, textDecoration: 'underline',
+                }}>
+                  Search species database →
+                </button>
+              </p>
+            </div>
           </div>
         )}
 
@@ -480,6 +485,172 @@ export default function PlantDetail() {
 }
 
 // ─── VitalCard ───────────────────────────────────────────────────────────────
+// ─── NfcAccordionRow — pair / unpair an NFC tag from the plant page ──────────
+function NfcAccordionRow({ plant }: { plant: Plant }) {
+  const { updatePlant, setErrorSheet } = useStore()
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [confirmUnpair, setConfirmUnpair] = useState(false)
+  const paired = !!plant.nfcTagId
+
+  const pairLabel = paired
+    ? `Paired · ${plant.nfcPairedAt ? new Date(plant.nfcPairedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : 'unknown date'}`
+    : 'No tag paired'
+
+  const handlePair = async () => {
+    setBusy(true)
+    try {
+      const langCode = 'en'
+      const text = plant.id
+      const status = langCode.length & 0x3f
+      const encoder = new TextEncoder()
+      const payload = [status, ...encoder.encode(langCode), ...encoder.encode(text)]
+      await NFC.writeNDEF({ records: [{ type: 'T', payload }], rawMode: true })
+      await updatePlant(plant.id, { nfcTagId: plant.id, nfcPairedAt: Date.now() })
+    } catch (err) {
+      console.warn('[NFC] plant-detail pair failed:', err)
+      setErrorSheet('tag-write-failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleUnpair = async () => {
+    if (!confirmUnpair) { setConfirmUnpair(true); return }
+    setBusy(true)
+    try {
+      await updatePlant(plant.id, { nfcTagId: undefined, nfcPairedAt: undefined })
+    } finally {
+      setBusy(false)
+      setConfirmUnpair(false)
+    }
+  }
+
+  return (
+    <div style={{ borderTop: `1px solid ${PCT.ink}18` }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-3.5 w-full text-left bg-transparent"
+        style={{ padding: '16px 4px' }}
+      >
+        <span style={{
+          width: 22, height: 22,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: PCT.terracotta,
+        }}>
+          <NFCGlyph color={PCT.terracotta} size={18} />
+        </span>
+        <span className="flex-1 flex items-baseline gap-2 min-w-0">
+          <span style={{
+            fontFamily: '"DM Serif Display", Georgia, serif',
+            fontSize: 22, color: PCT.ink, lineHeight: 1.0,
+          }}>NFC tag</span>
+          {paired && (
+            <span style={{
+              fontFamily: 'ui-monospace, "SF Mono", monospace',
+              fontSize: 9, letterSpacing: 1.3, textTransform: 'uppercase',
+              color: PCT.oliveDeep, flexShrink: 0,
+            }}>· synced</span>
+          )}
+        </span>
+        <span style={{
+          fontFamily: '"DM Serif Display", Georgia, serif',
+          fontStyle: 'italic', fontSize: 14, color: PCT.inkFaint,
+        }}>
+          {open ? '— close' : 'open'}
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 4px 18px 40px' }}>
+          <div style={{
+            fontFamily: 'Newsreader, Georgia, serif',
+            fontSize: 14, color: PCT.inkSoft, lineHeight: 1.5, marginBottom: 12,
+          }}>
+            {paired
+              ? <>This plant is linked to a sticker. Tap it to log a watering. {pairLabel.toLowerCase()}.</>
+              : <>Stick an NTAG213 sticker on the pot, tap below, then hold your phone to the sticker to pair it.</>}
+          </div>
+
+          {!paired && (
+            <button
+              onClick={handlePair}
+              disabled={busy}
+              className="w-full flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{
+                padding: '14px',
+                background: PCT.terracotta, color: PCT.cream,
+                border: 'none', borderRadius: 16,
+                fontFamily: '"DM Serif Display", Georgia, serif',
+                fontStyle: 'italic', fontSize: 16,
+                boxShadow: '0 6px 16px rgba(165,78,38,0.28)',
+              }}
+            >
+              <NFCGlyph color={PCT.cream} size={16} />
+              {busy ? 'Hold the sticker steady…' : 'Pair a sticker'}
+            </button>
+          )}
+
+          {paired && !confirmUnpair && (
+            <button
+              onClick={handleUnpair}
+              disabled={busy}
+              className="w-full text-center disabled:opacity-50"
+              style={{
+                padding: '12px',
+                background: 'transparent',
+                border: `1px solid ${PCT.thirsty}55`,
+                borderRadius: 14,
+                fontFamily: '"DM Serif Display", Georgia, serif',
+                fontStyle: 'italic', fontSize: 14, color: PCT.thirsty,
+              }}
+            >
+              Unpair tag
+            </button>
+          )}
+
+          {paired && confirmUnpair && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmUnpair(false)}
+                className="flex-1 text-center"
+                style={{
+                  padding: 12,
+                  background: 'transparent',
+                  border: `1px solid ${PCT.ink}22`,
+                  borderRadius: 14,
+                  fontFamily: '"DM Serif Display", Georgia, serif',
+                  fontStyle: 'italic', fontSize: 14, color: PCT.inkSoft,
+                }}
+              >Keep paired</button>
+              <button
+                onClick={handleUnpair}
+                disabled={busy}
+                className="flex-1 text-center disabled:opacity-50"
+                style={{
+                  padding: 12,
+                  background: PCT.thirsty, color: PCT.cream,
+                  border: 'none', borderRadius: 14,
+                  fontFamily: '"DM Serif Display", Georgia, serif',
+                  fontStyle: 'italic', fontSize: 14,
+                }}
+              >Yes, unpair</button>
+            </div>
+          )}
+
+          <div className="mt-3" style={{
+            fontFamily: 'Newsreader, Georgia, serif',
+            fontSize: 12, color: PCT.inkFaint, lineHeight: 1.4,
+          }}>
+            {paired
+              ? 'Unpairing only severs the link in OutFlourish. The sticker itself can be re-written by pairing it to another plant.'
+              : 'Cheap NTAG213 stickers work best. You can write the same sticker to another plant any time.'}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function VitalCard({ label, value, subtle, accent }: {
   label: string; value: string; subtle?: string; accent?: string
 }) {

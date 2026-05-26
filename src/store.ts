@@ -34,7 +34,8 @@ export interface Plant {
   mood?: string                // user-editable anthropomorphic line
   history: WaterLog[]
   createdAt: number
-  nfcTagId?: string
+  nfcTagId?: string            // logical id written to the paired NDEF tag (currently == plant.id)
+  nfcPairedAt?: number         // timestamp when the tag was paired; used in the paired-state badge
 }
 
 export interface Room {
@@ -57,6 +58,7 @@ export interface AppSettings {
     defaultUnit: 'ml' | 'oz'
     drainageReminder: boolean
     seasonalDosing: boolean
+    confirmAmountOnScan: boolean
   }
   rooms: {
     groupHomeByRoom: boolean
@@ -93,6 +95,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     defaultUnit: 'ml',
     drainageReminder: true,
     seasonalDosing: true,
+    confirmAmountOnScan: true,
   },
   rooms: {
     groupHomeByRoom: false,
@@ -195,6 +198,7 @@ function migratePlant(raw: unknown): Plant | null {
     history: Array.isArray(r.history) ? r.history as WaterLog[] : [],
     createdAt: typeof r.createdAt === 'number' ? r.createdAt : Date.now(),
     nfcTagId: r.nfcTagId,
+    nfcPairedAt: typeof r.nfcPairedAt === 'number' ? r.nfcPairedAt : undefined,
   }
 }
 

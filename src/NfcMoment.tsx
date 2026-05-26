@@ -19,17 +19,20 @@ interface Props {
   onComplete: () => void
   /** When true, suppress the real logWater side-effect (used by Settings preview). */
   previewMode?: boolean
+  /** Override the amount logged. Defaults to plant.recommendedMl. */
+  amountMl?: number
 }
 
 const TOTAL_MS = 6500
 
-export default function NfcMoment({ plant, onComplete, previewMode = false }: Props) {
+export default function NfcMoment({ plant, onComplete, previewMode = false, amountMl }: Props) {
   const { logWater } = useStore()
+  const ml = amountMl ?? plant.recommendedMl
 
   useEffect(() => {
     // Trigger the actual watering during the 'watering' phase (skipped in preview)
     const waterTimer = previewMode ? null : setTimeout(() => {
-      logWater(plant.id, 'water', { amountMl: plant.recommendedMl })
+      logWater(plant.id, 'water', { amountMl: ml })
     }, 2600)
     // Auto-dismiss when the full cycle finishes
     const dismissTimer = setTimeout(onComplete, TOTAL_MS)
@@ -37,7 +40,7 @@ export default function NfcMoment({ plant, onComplete, previewMode = false }: Pr
       if (waterTimer) clearTimeout(waterTimer)
       clearTimeout(dismissTimer)
     }
-  }, [plant.id, plant.recommendedMl, logWater, onComplete, previewMode])
+  }, [plant.id, ml, logWater, onComplete, previewMode])
 
   return (
     <div

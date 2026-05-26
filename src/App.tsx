@@ -12,7 +12,7 @@ import PrivacyPolicy from './PrivacyPolicy'
 import ManageRoomsScreen from './ManageRoomsScreen'
 import Onboarding from './Onboarding'
 import NfcMoment from './NfcMoment'
-import { AlreadyWateredSheet, Toast, ErrorSheet } from './sheets'
+import { AlreadyWateredSheet, Toast, ErrorSheet, AmountOnScanSheet, BlankTagSheet } from './sheets'
 
 function parsePlantIdFromNdefPayload(payload: number[]): string | null {
   if (!payload || payload.length < 3) return null
@@ -35,7 +35,7 @@ const router = createHashRouter([
 export default function App() {
   const {
     load, plants, settings, isLoaded, completeOnboarding,
-    processNFCScan, setPendingNfcWrite,
+    processNFCScan, setPendingNfcWrite, updatePlant,
     pendingConfirm, confirmPendingWater, cancelPendingWater,
     lastWaterAction, undoLastWater, clearLastWaterAction,
     errorSheet, setErrorSheet,
@@ -43,6 +43,11 @@ export default function App() {
 
   // Full-screen NFC moment animation (when user successfully scans paired tag)
   const [nfcMomentPlant, setNfcMomentPlant] = useState<Plant | null>(null)
+  const [nfcMomentAmount, setNfcMomentAmount] = useState<number | undefined>(undefined)
+  // Amount picker — when settings.watering.confirmAmountOnScan is on
+  const [amountSheetPlant, setAmountSheetPlant] = useState<Plant | null>(null)
+  // Blank-tag chooser — when a tag has no plant id payload
+  const [blankTagOpen, setBlankTagOpen] = useState(false)
 
   useEffect(() => {
     load()
@@ -89,8 +94,8 @@ export default function App() {
       if (plantId) {
         handleNfcScan(plantId)
       } else {
-        // Tag had no plant_id payload — unknown tag, offer pair flow
-        setErrorSheet('tag-unknown')
+        // Tag had no plant_id payload — open the blank-tag chooser
+        setBlankTagOpen(true)
       }
     })
     const unsubError = NFC.onError(err => {
@@ -106,7 +111,8 @@ export default function App() {
   // Decide whether a paired-tag scan opens the NFC moment animation OR the
   // already-watered overlay. processNFCScan handles the <12h logic.
   function handleNfcScan(plantId: string) {
-    const plant = useStore.getState().plants.find(p => p.id === plantId)
+    const state = useStore.getState()
+    const plant = state.plants.find(p => p.id === plantId)
     if (!plant) {
       setErrorSheet('tag-unknown')
       return
@@ -116,8 +122,14 @@ export default function App() {
       .sort((a, b) => b.timestamp - a.timestamp)[0]?.timestamp
     if (lastWatered && Date.now() - lastWatered < 12 * 3_600_000) {
       processNFCScan(plantId)
+      return
+    }
+    // Optional amount confirmation step before the moment plays
+    if (state.settings.watering.confirmAmountOnScan) {
+      setAmountSheetPlant(plant)
     } else {
-      // Long-form moment — auto-logs during the watering phase
+      // Silent path — moment animation logs the default recommendedMl
+      setNfcMomentAmount(undefined)
       setNfcMomentPlant(plant)
     }
   }
@@ -147,14 +159,49 @@ export default function App() {
         />
       )}
 
+      {/* Per-scan amount picker (only when settings.watering.confirmAmountOnScan is on) */}
+      {amountSheetPlant && (
+        <AmountOnScanSheet
+          plant={amountSheetPlant}
+          onContinue={(ml) => {
+            const p = amountSheetPlant
+            setAmountSheetPlant(null)
+            setNfcMomentAmount(ml)
+            setNfcMomentPlant(p)
+          }}
+          onCancel={() => setAmountSheetPlant(null)}
+        />
+      )}
+
       {/* NFC moment — full-screen reveal + watering animation */}
       {nfcMomentPlant && (
         <NfcMoment
           plant={nfcMomentPlant}
+          amountMl={nfcMomentAmount}
           onComplete={() => {
+            const id = nfcMomentPlant.id
             setNfcMomentPlant(null)
-            router.navigate(`/plant/${nfcMomentPlant.id}`)
+            setNfcMomentAmount(undefined)
+            router.navigate(`/plant/${id}`)
           }}
+        />
+      )}
+
+      {/* Blank tag chooser — pair to existing or add new */}
+      {blankTagOpen && (
+        <BlankTagSheet
+          plants={plants}
+          onPairExisting={async (plant) => {
+            await updatePlant(plant.id, { nfcTagId: plant.id, nfcPairedAt: Date.now() })
+            setBlankTagOpen(false)
+            router.navigate(`/plant/${plant.id}`)
+          }}
+          onCreateNew={() => {
+            setBlankTagOpen(false)
+            setPendingNfcWrite(true)
+            router.navigate('/add')
+          }}
+          onCancel={() => setBlankTagOpen(false)}
         />
       )}
 

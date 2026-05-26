@@ -18,7 +18,7 @@ import { SearchGlyph, NFCGlyph } from './components/Glyphs'
 
 export default function AddPlantScreen() {
   const navigate = useNavigate()
-  const { addPlant, pendingNfcWrite, setPendingNfcWrite, rooms, setErrorSheet } = useStore()
+  const { addPlant, updatePlant, pendingNfcWrite, setPendingNfcWrite, rooms, setErrorSheet } = useStore()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<SpeciesProfile | null>(null)
   const [name, setName] = useState('')
@@ -83,6 +83,7 @@ export default function AddPlantScreen() {
           records: [{ type: 'T', payload }],
           rawMode: true,
         })
+        await updatePlant(newPlant.id, { nfcTagId: newPlant.id, nfcPairedAt: Date.now() })
         setPendingNfcWrite(false)
       } catch (err) {
         console.warn('[NFC] write failed:', err)

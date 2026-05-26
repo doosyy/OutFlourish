@@ -188,6 +188,9 @@ export default function SettingsScreen() {
         <Row label="Seasonal dosing" hint="Dial back ~30% in winter automatically."
           control={<Toggle on={settings.watering.seasonalDosing}
             onChange={v => updateSettings({ watering: { ...settings.watering, seasonalDosing: v } })} />} />
+        <Row label="Confirm amount on scan" hint="Pick Light, Recommended, Heavy or custom when a tag is tapped."
+          control={<Toggle on={settings.watering.confirmAmountOnScan}
+            onChange={v => updateSettings({ watering: { ...settings.watering, confirmAmountOnScan: v } })} />} />
       </Group>
 
       {/* Rooms */}

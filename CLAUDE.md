@@ -481,6 +481,9 @@ Tracked for future work. None block the current build.
 - Long plant name truncation across Home and Plant Detail ✓
 - Onboarding region picker overlap fix ✓
 - NFC integration (read + write) via free Exxili plugin ✓
+- **NFC amount picker on scan** ✓ — `AmountOnScanSheet` (`src/sheets/AmountOnScanSheet.tsx`) appears on paired-tag reads when `settings.watering.confirmAmountOnScan` is on (default). 3 preset chips (Light=winterMl, Recommended=recommendedMl, Heavy=recommendedMl×1.4) plus an inline custom stepper. Selected amount is passed through `NfcMoment` via a new `amountMl?: number` prop.
+- **Pair NFC tag from plant page** ✓ — `NfcAccordionRow` in `src/PlantDetail.tsx` (mounted inside the care guide accordion). Two states: unpaired → "Pair a sticker" button that calls `NFC.writeNDEF` with the plant's id; paired → "Paired · {date}" with explicit "Unpair" confirm flow. `Plant` gains `nfcPairedAt?: number`. Pairing in AddPlantScreen now also sets `nfcTagId` + `nfcPairedAt` after a successful write (previously it wrote but didn't persist).
+- **Blank tag chooser** ✓ — `BlankTagSheet` (`src/sheets/BlankTagSheet.tsx`) appears when a blank tag is held to the phone, replacing the previous `tag-unknown` error sheet for this case. Two-mode UX: chooser ("Pair to existing" vs "Add a new plant") → plant picker list. Tapping a plant fires `NFC.writeNDEF` inline; on success the plant gets paired and the app navigates to it.
 
 ### Wireframe review pass (10 fixes, commits d92547e + 711fc7c)
 - Plant Detail floating pill no longer overlaps scroll content (paddingBottom now `max(160px, calc(var(--sab) + 140px))`)
