@@ -27,6 +27,9 @@ html, body {
   overflow: hidden;
   position: fixed;
   width: 100%;
+  /* Cream background as a defense against the WKWebView showing black during
+     layout reflows (notably after the iOS NFC scan sheet dismisses). */
+  background-color: oklch(0.965 0.012 80);
 }
 
 /* #root is the actual scroll container — confined scroll = no OS-level bounce */

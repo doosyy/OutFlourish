@@ -116,9 +116,16 @@ export default function App() {
         // Tag had no plant_id payload — open the blank-tag chooser
         setBlankTagOpen(true)
       }
+      // Same reflow nudge as onError below.
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 120)
     })
     const unsubError = NFC.onError(err => {
       console.warn('[NFC] error:', err.error)
+      // Force a layout reflow: iOS sometimes leaves the WKWebView with a
+      // stale safe-area state after the NFC scan sheet dismisses, exposing
+      // the WKWebView background. Dispatching resize prompts the browser
+      // to recompute dvh / env() values.
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 120)
     })
     return () => {
       unsubRead()
