@@ -21,6 +21,7 @@ import {
 } from './store'
 import { PCT, accentFor } from './tokens'
 import { useSpeciesDb, getCachedSpeciesDb } from './speciesLoader'
+import type { SpeciesProfile } from './speciesDb'
 import PlantPhotoMeter from './components/PlantPhotoMeter'
 import HydrationSparkline from './components/HydrationSparkline'
 import { AccordionRow, GlassCircle, FormField } from './components/UI'
@@ -373,30 +374,7 @@ export default function PlantDetail() {
 
         {/* Care guide */}
         {species && (
-          <div className="mt-9">
-            <div style={{
-              fontFamily: 'ui-monospace, "SF Mono", monospace',
-              fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
-              color: PCT.terracotta, marginBottom: 6,
-            }}>The care guide</div>
-            <div className="mb-2" style={{
-              fontFamily: '"DM Serif Display", Georgia, serif',
-              fontSize: 28, lineHeight: 1.0, color: PCT.ink,
-            }}>How to keep {plant.name} happy</div>
-
-            <AccordionRow defaultOpen icon={<SunGlyph color={PCT.terracotta} size={18} />}
-              title="Light" body={species.careGuide.light} />
-            <AccordionRow icon={<DropGlyph color={PCT.terracotta} size={18} />}
-              title="Water" body={species.careGuide.water} />
-            <AccordionRow icon={<FoodGlyph color={PCT.terracotta} size={18} />}
-              title="Food" body={species.careGuide.food} />
-            <AccordionRow icon={<SeasonGlyph color={PCT.terracotta} size={18} />}
-              title="Season" body={species.careGuide.season} />
-            <AccordionRow icon={<TroubleGlyph color={PCT.terracotta} size={18} />}
-              title="Troubles" body={species.careGuide.trouble} />
-            <NfcAccordionRow plant={plant} />
-            <div style={{ height: 1, background: `${PCT.ink}18` }} />
-          </div>
+          <CareGuideSection species={species} plant={plant} />
         )}
         {!species && !isLoadingSpecies && (
           <div className="mt-7" style={{ borderTop: `1px solid ${PCT.ink}18` }}>
@@ -487,6 +465,75 @@ export default function PlantDetail() {
 }
 
 // ─── VitalCard ───────────────────────────────────────────────────────────────
+// ─── CareGuideSection — Essentials / Deeper tab toggle, then the 5 rows ─────
+function CareGuideSection({ species, plant }: { species: SpeciesProfile; plant: Plant }) {
+  const [depth, setDepth] = useState<'essentials' | 'deeper'>('essentials')
+  const hasDeep = !!species.careGuideDeep
+  const guide = depth === 'deeper' && species.careGuideDeep ? species.careGuideDeep : species.careGuide
+
+  return (
+    <div className="mt-9">
+      <div style={{
+        fontFamily: 'ui-monospace, "SF Mono", monospace',
+        fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
+        color: PCT.terracotta, marginBottom: 6,
+      }}>The care guide</div>
+      <div className="mb-3" style={{
+        fontFamily: '"DM Serif Display", Georgia, serif',
+        fontSize: 28, lineHeight: 1.0, color: PCT.ink,
+      }}>How to keep {plant.name} happy</div>
+
+      {hasDeep && (
+        <div
+          className="inline-flex mb-2"
+          style={{
+            background: PCT.paper,
+            border: `1px solid ${PCT.ink}14`,
+            borderRadius: 999,
+            padding: 3,
+          }}
+        >
+          {(['essentials', 'deeper'] as const).map(opt => {
+            const active = depth === opt
+            return (
+              <button
+                key={opt}
+                onClick={() => setDepth(opt)}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: 999,
+                  background: active ? PCT.terracotta : 'transparent',
+                  color: active ? PCT.cream : PCT.inkSoft,
+                  fontFamily: '"DM Serif Display", Georgia, serif',
+                  fontStyle: 'italic', fontSize: 14,
+                  border: 'none',
+                  boxShadow: active ? '0 4px 10px rgba(165,78,38,0.26)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {opt === 'essentials' ? 'Essentials' : 'Deeper'}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      <AccordionRow defaultOpen icon={<SunGlyph color={PCT.terracotta} size={18} />}
+        title="Light" body={guide.light} key={`light-${depth}`} />
+      <AccordionRow icon={<DropGlyph color={PCT.terracotta} size={18} />}
+        title="Water" body={guide.water} key={`water-${depth}`} />
+      <AccordionRow icon={<FoodGlyph color={PCT.terracotta} size={18} />}
+        title="Food" body={guide.food} key={`food-${depth}`} />
+      <AccordionRow icon={<SeasonGlyph color={PCT.terracotta} size={18} />}
+        title="Season" body={guide.season} key={`season-${depth}`} />
+      <AccordionRow icon={<TroubleGlyph color={PCT.terracotta} size={18} />}
+        title="Troubles" body={guide.trouble} key={`trouble-${depth}`} />
+      <NfcAccordionRow plant={plant} />
+      <div style={{ height: 1, background: `${PCT.ink}18` }} />
+    </div>
+  )
+}
+
 // ─── NfcAccordionRow — pair / unpair an NFC tag from the plant page ──────────
 function NfcAccordionRow({ plant }: { plant: Plant }) {
   const { updatePlant, setErrorSheet } = useStore()
