@@ -458,13 +458,13 @@ When the meter is in an overdue state (Plant Detail), it gets a 3px terracotta b
 
 Tracked for future work. None block the current build.
 
-1. **EmptyRoomState** — designed but not implemented.
-2. **Editable Hemisphere/region pickers in Settings** — currently static Pills, not tappable.
-3. **Editable reminder time / quiet hours pickers** — currently static Pills.
+1. **EmptyRoomState** — **DONE**. Rendered inline under each empty room header in HomeByRoom: paper card with dashed border, olive leaf glyph, quiet copy ("{Room} is quiet. No plants live here yet.") and an "Add one" pill that routes to /add.
+2. **Editable Hemisphere/region pickers in Settings** — **DONE**. SegmentSheet for Hemisphere, TextInputSheet for Region. All Settings pickers wired (reminderTime, quietHours, snooze, unit, hemisphere, region, pets).
+3. **Editable reminder time / quiet hours pickers** — **DONE** (same picker wiring as #2; TimePickerSheet and QuietHoursSheet).
 4. **Species library expansion** — **DONE · 150/150**. Five batches shipped covering foliage, aroids, succulents, cacti, flowering, statement, palms, ferns, carnivorous, specialty aroids (Anthurium Clarinervium, Philodendron Gloriosum/Melanochrysum, Alocasia Stingray/Dragon Scale, Monstera Albo/Thai Constellation), Tillandsias, Hoyas, Pothos varieties, holiday cacti, Echeverias, Aeonium, Sago Palm. All entries have empty photo strings (gradient fallback) and full 5-field care guides. Photos to be supplied later.
 5. **Notification appearance design** — iOS uses default banner; rich notification not yet designed.
-6. **Photo cleanup on swap** — `photos.ts` writes new file each time but doesn't delete the old one. Minor storage leak; add `photoPath` to Plant for tracking.
-7. **NFC preview side-effect** — Settings → Preview NFC moment fires real `logWater()` mid-animation. Acceptable for v1 (Undo dismisses), but could pass a `previewMode` prop to NfcMoment to suppress.
+6. **Photo cleanup on swap** — **DONE**. Plant now carries `photoPath?: string`. `PhotoPicker.onChange` reports the new Filesystem path; `EditPlantForm` deletes the previous file via `removeStoredPhoto()` before swapping; `deletePlant` cleans up on plant removal. Reverting to species photo passes `undefined` so no orphaned data is left behind.
+7. **NFC preview side-effect** — **DONE**. `NfcMoment` accepts a `previewMode` boolean; when true, the `logWater()` side-effect is skipped. Settings preview now passes `previewMode`.
 8. **iCloud sync (CKShare)** — designer flagged as v1.1.
 9. **Apple Watch companion** — not designed; v2.
 10. **iPad layout** — not designed.

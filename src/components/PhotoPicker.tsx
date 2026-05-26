@@ -16,7 +16,8 @@ interface Props {
   speciesPhoto: string
   /** Plant ID for naming stored files. */
   plantId: string
-  onChange: (newPhoto: string) => void
+  /** newPath is the Filesystem-relative path of a fresh user capture (undefined when reverting to species). */
+  onChange: (newPhoto: string, newPath?: string) => void
 }
 
 export default function PhotoPicker({ currentPhoto, speciesPhoto, plantId, onChange }: Props) {
@@ -29,7 +30,7 @@ export default function PhotoPicker({ currentPhoto, speciesPhoto, plantId, onCha
   const handleChoice = (choice: PhotoChoice) => {
     setShowChooser(false)
     if (choice === 'species') {
-      onChange(speciesPhoto)
+      onChange(speciesPhoto, undefined)
       return
     }
     // 'camera' or 'photos' → show pre-prompt first
@@ -42,7 +43,7 @@ export default function PhotoPicker({ currentPhoto, speciesPhoto, plantId, onCha
     setBusy(true)
     try {
       const result = await capturePlantPhoto(plantId, source)
-      if (result) onChange(result.src)
+      if (result) onChange(result.src, result.path)
     } finally {
       setBusy(false)
     }

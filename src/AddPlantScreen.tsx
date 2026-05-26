@@ -26,7 +26,13 @@ export default function AddPlantScreen() {
   const [interval, setInterval] = useState(7)
   const [saving, setSaving] = useState(false)
   const [photo, setPhoto] = useState('')   // empty = use selected.photo on save
+  const [photoPath, setPhotoPath] = useState<string | undefined>(undefined)
   const draftPlantId = useMemo(() => `plant_${Date.now()}`, [])
+
+  const handlePhotoChange = (newPhoto: string, newPath?: string) => {
+    setPhoto(newPhoto)
+    setPhotoPath(newPath)
+  }
 
   const results = useMemo(() => searchSpecies(query), [query])
 
@@ -44,6 +50,7 @@ export default function AddPlantScreen() {
     setName(sp.name)
     setInterval(sp.baseIntervalDays)
     setPhoto('')  // default to species photo
+    setPhotoPath(undefined)
   }
 
   const handleSave = async () => {
@@ -54,6 +61,7 @@ export default function AddPlantScreen() {
       species: selected.name,
       speciesId: selected.id,
       photo: photo || selected.photo,
+      photoPath: photo ? photoPath : undefined,
       baseIntervalDays: interval,
       recommendedMl: selected.recommendedMl,
       winterMl: selected.winterMl,
@@ -101,7 +109,7 @@ export default function AddPlantScreen() {
         onNameChange={setName}
         onRoomChange={setRoom}
         onIntervalChange={setInterval}
-        onPhotoChange={setPhoto}
+        onPhotoChange={handlePhotoChange}
         onChangeSpecies={() => setSelected(null)}
         onBack={handleBack}
         onSave={handleSave}
@@ -325,7 +333,7 @@ interface FormProps {
   onNameChange: (v: string) => void
   onRoomChange: (v: string) => void
   onIntervalChange: (v: number) => void
-  onPhotoChange: (v: string) => void
+  onPhotoChange: (v: string, path?: string) => void
   onChangeSpecies: () => void
   onBack: () => void
   onSave: () => void

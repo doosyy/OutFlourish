@@ -262,7 +262,7 @@ export default function SettingsScreen() {
 
       {/* NFC moment preview overlay (debug) */}
       {nfcPreview && plants[0] && (
-        <NfcMoment plant={plants[0]} onComplete={() => setNfcPreview(false)} />
+        <NfcMoment plant={plants[0]} onComplete={() => setNfcPreview(false)} previewMode />
       )}
 
       {/* Footer */}

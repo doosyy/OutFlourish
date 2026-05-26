@@ -17,25 +17,27 @@ interface Props {
   plant: Plant
   /** called when the user dismisses early or animation completes */
   onComplete: () => void
+  /** When true, suppress the real logWater side-effect (used by Settings preview). */
+  previewMode?: boolean
 }
 
 const TOTAL_MS = 6500
 
-export default function NfcMoment({ plant, onComplete }: Props) {
+export default function NfcMoment({ plant, onComplete, previewMode = false }: Props) {
   const { logWater } = useStore()
 
   useEffect(() => {
-    // Trigger the actual watering during the 'watering' phase
-    const waterTimer = setTimeout(() => {
+    // Trigger the actual watering during the 'watering' phase (skipped in preview)
+    const waterTimer = previewMode ? null : setTimeout(() => {
       logWater(plant.id, 'water', { amountMl: plant.recommendedMl })
     }, 2600)
     // Auto-dismiss when the full cycle finishes
     const dismissTimer = setTimeout(onComplete, TOTAL_MS)
     return () => {
-      clearTimeout(waterTimer)
+      if (waterTimer) clearTimeout(waterTimer)
       clearTimeout(dismissTimer)
     }
-  }, [plant.id, plant.recommendedMl, logWater, onComplete])
+  }, [plant.id, plant.recommendedMl, logWater, onComplete, previewMode])
 
   return (
     <div

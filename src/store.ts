@@ -3,6 +3,7 @@ import { Preferences } from '@capacitor/preferences'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { Badge } from '@capawesome/capacitor-badge'
 import { LocalNotifications } from '@capacitor/local-notifications'
+import { removeStoredPhoto } from './photos'
 
 // ─── Data Models ──────────────────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ export interface Plant {
   species?: string             // display name
   speciesId?: string           // FK → SpeciesProfile.id
   photo: string                // user upload OR fallback to species.photo (relative path or full URL)
+  photoPath?: string           // Filesystem-relative path for cleanup (only set when photo is user-captured on native)
   baseIntervalDays: number
   recommendedMl: number        // per drink in growing season
   winterMl: number             // dialed-back winter amount
@@ -184,6 +186,7 @@ function migratePlant(raw: unknown): Plant | null {
     species: r.species,
     speciesId: r.speciesId,
     photo: (typeof r.photo === 'string' && r.photo) ? r.photo : '',
+    photoPath: typeof r.photoPath === 'string' ? r.photoPath : undefined,
     baseIntervalDays: typeof r.baseIntervalDays === 'number' ? r.baseIntervalDays : 7,
     recommendedMl: typeof r.recommendedMl === 'number' ? r.recommendedMl : 240,
     winterMl: typeof r.winterMl === 'number' ? r.winterMl : 160,
@@ -529,9 +532,11 @@ export const useStore = create<AppStore>()((set, get) => ({
   },
 
   deletePlant: async (id) => {
+    const target = get().plants.find(p => p.id === id)
     const plants = get().plants.filter(p => p.id !== id)
     set({ plants })
     await Repository.savePlants(plants)
+    if (target?.photoPath) await removeStoredPhoto(target.photoPath)
     await updateAll({ ...get(), plants })
   },
 

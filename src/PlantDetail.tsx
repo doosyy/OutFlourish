@@ -25,6 +25,7 @@ import PlantPhotoMeter from './components/PlantPhotoMeter'
 import HydrationSparkline from './components/HydrationSparkline'
 import { AccordionRow, GlassCircle, FormField } from './components/UI'
 import PhotoPicker from './components/PhotoPicker'
+import { removeStoredPhoto } from './photos'
 import { WateringSheet } from './sheets'
 import {
   ChevronGlyph, EditGlyph, DotsGlyph, DropGlyph, FoodGlyph, RepotGlyph,
@@ -741,7 +742,17 @@ function EditPlantForm({ plant, existingRooms, onClose, onDelete }: {
   const [mood, setMood] = useState(plant.mood ?? '')
   const [interval, setInterval] = useState(plant.baseIntervalDays)
   const [photo, setPhoto] = useState(plant.photo)
+  const [photoPath, setPhotoPath] = useState<string | undefined>(plant.photoPath)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const handlePhotoChange = async (newPhoto: string, newPath?: string) => {
+    // If the previous photo was a user-captured one, delete it from Filesystem before swapping.
+    if (photoPath && photoPath !== newPath) {
+      await removeStoredPhoto(photoPath)
+    }
+    setPhoto(newPhoto)
+    setPhotoPath(newPath)
+  }
 
   // Species photo to revert to (falls back to existing photo if no species linked)
   const speciesPhoto = plant.speciesId
@@ -757,6 +768,7 @@ function EditPlantForm({ plant, existingRooms, onClose, onDelete }: {
       mood: mood.trim() || undefined,
       baseIntervalDays: interval,
       photo,
+      photoPath,
     })
     onClose()
   }
@@ -785,7 +797,7 @@ function EditPlantForm({ plant, existingRooms, onClose, onDelete }: {
           currentPhoto={photo}
           speciesPhoto={speciesPhoto}
           plantId={plant.id}
-          onChange={setPhoto}
+          onChange={handlePhotoChange}
         />
         <div style={{
           fontFamily: 'Newsreader, Georgia, serif',

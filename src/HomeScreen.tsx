@@ -500,7 +500,7 @@ function HomeByRoom({ now, thirsty, sorted }: {
   const { rooms } = useStore()
   const grouped = rooms
     .map(room => ({ room, plants: sorted.filter(p => p.room === room.name) }))
-    .filter(g => g.plants.length > 0)
+  const populatedCount = grouped.filter(g => g.plants.length > 0).length
   const unsited = sorted.filter(p => !p.room)
   const greeting = greetingFor(new Date(now))
   const dateStr = new Date(now).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -554,7 +554,7 @@ function HomeByRoom({ now, thirsty, sorted }: {
           fontStyle: 'italic', fontSize: 17, lineHeight: 1.15,
         }}>
           plants throwing a tantrum<br />
-          across <span style={{ color: PCT.terracottaSoft }}>{grouped.length} rooms</span>
+          across <span style={{ color: PCT.terracottaSoft }}>{populatedCount} room{populatedCount !== 1 ? 's' : ''}</span>
         </div>
       </div>
 
@@ -595,9 +595,11 @@ function HomeByRoom({ now, thirsty, sorted }: {
               fontSize: 10, letterSpacing: 1.4, color: PCT.inkFaint,
             }}>{plants.length}</span>
           </div>
-          {plants.map(p => (
-            <AlmanacRow key={p.id} plant={p} onClick={() => navigate(`/plant/${p.id}`)} />
-          ))}
+          {plants.length === 0
+            ? <EmptyRoomState roomName={room.name} onAdd={() => navigate('/add')} />
+            : plants.map(p => (
+                <AlmanacRow key={p.id} plant={p} onClick={() => navigate(`/plant/${p.id}`)} />
+              ))}
         </div>
       ))}
 
@@ -726,6 +728,65 @@ function EmptyHome({ onAdd }: { onAdd: () => void }) {
         <Promise n="03" title="Your data stays here"
           body="On your phone. Backup is a single file you control." />
       </div>
+    </div>
+  )
+}
+
+// ─── EmptyRoomState — placeholder for rooms with zero plants ─────────────────
+function EmptyRoomState({ roomName, onAdd }: { roomName: string; onAdd: () => void }) {
+  return (
+    <div
+      style={{
+        margin: '6px 28px 0',
+        padding: '18px 20px',
+        background: PCT.paper,
+        border: `1px dashed ${PCT.ink}26`,
+        borderRadius: 18,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+      }}
+    >
+      <div
+        className="flex items-center justify-center flex-shrink-0"
+        style={{
+          width: 38, height: 38,
+          borderRadius: '50%',
+          background: PCT.oliveSoft + '88',
+        }}
+      >
+        <LeafGlyph color={PCT.olive} size={16} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div style={{
+          fontFamily: '"DM Serif Display", Georgia, serif',
+          fontStyle: 'italic', fontSize: 15, color: PCT.inkSoft, lineHeight: 1.25,
+        }}>
+          {roomName} is quiet.
+        </div>
+        <div className="mt-0.5" style={{
+          fontFamily: 'Newsreader, Georgia, serif',
+          fontSize: 12, color: PCT.inkFaint, lineHeight: 1.35,
+        }}>
+          No plants live here yet.
+        </div>
+      </div>
+      <button
+        onClick={onAdd}
+        style={{
+          flexShrink: 0,
+          padding: '7px 14px',
+          background: 'transparent',
+          border: `1px solid ${PCT.terracotta}66`,
+          borderRadius: 999,
+          fontFamily: 'ui-monospace, "SF Mono", monospace',
+          fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase',
+          color: PCT.terracottaDeep,
+          cursor: 'pointer',
+        }}
+      >
+        Add one
+      </button>
     </div>
   )
 }
