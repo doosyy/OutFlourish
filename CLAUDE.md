@@ -37,6 +37,11 @@ npm run cap:sync         # npx cap sync
 npm run cap:ios          # build + cap sync ios + open Xcode
 npm run fetch:photos     # download species photos to public/species/
 npx tsc --noEmit         # type-check without emitting
+
+# One-off maintenance scripts (see scripts/)
+node scripts/match-photos.mjs "/path/to/folder" [--apply]   # match photos named by plant name -> {id}.jpg in public/species/, convert to 720px JPG, patch speciesDb. Falls back to aliases. Dry-run unless --apply.
+node scripts/dedupe-species.mjs [--apply]                   # find/remove duplicate-id species entries, keeping the richer copy
+npx capacitor-assets generate --ios                         # regenerate app icon + splash from assets/icon.png (1024x1024)
 ```
 
 ---
@@ -59,7 +64,8 @@ plant-care/
 │   └── fetch-species-photos.mjs    # downloads Unsplash photos at build time
 ├── public/
 │   ├── favicon.svg
-│   └── species/                    # 6 bundled species photos (~423KB total)
+│   ├── species/                    # 119 bundled species photos (720px JPG, ~7.8MB)
+│   └── app-icon.png                # split-leaf app icon, shown on welcome + launch screens
 │       ├── monstera-deliciosa.jpg
 │       ├── fiddle-leaf-fig.jpg
 │       ├── peace-lily.jpg
@@ -71,7 +77,7 @@ plant-care/
     ├── index.css              # Tailwind + body bg + glass utilities + focus ring
     ├── tokens.ts              # PCT colour constants (OKLCH strings) for inline SVG/style
     ├── store.ts               # ALL business logic — entities, repository, derived helpers
-    ├── speciesDb.ts           # 150-species library + search helpers
+    ├── speciesDb.ts           # 138-species library + search helpers (deduped from 150)
     ├── App.tsx                # Router, NFC session, deep links, onboarding gate, sheets/toast
     ├── HomeScreen.tsx         # Hybrid layout + HomeByRoom + EmptyHome
     ├── PlantDetail.tsx        # Hero photo, overlapping meter, sparkline, accordion, diary, edit
@@ -109,7 +115,7 @@ plant-care/
 
 | Token | Value | Used for |
 |---|---|---|
-| `cream` | `oklch(0.965 0.012 80)` | Page background |
+| `cream` | `oklch(0.965 0.012 80)` ≡ `#f8f3eb` | Page background |
 | `paper` | `oklch(0.93 0.018 75)` | Cards |
 | `paperDeep` | `oklch(0.88 0.022 70)` | Strong cards, off toggle |
 | `terracotta` | `oklch(0.62 0.115 42)` | Primary action |
@@ -167,7 +173,9 @@ Default body font set on `<body>` in `src/index.css`.
 | `shadow-terra-card` | `0 18px 40px rgba(165,78,38,0.32), inset 0 0 0 1px rgba(255,255,255,0.12)` |
 
 ### Safe area
-`--sat` / `--sab` exposed from `env(safe-area-inset-*)` in `:root`. All screens use `padding-top: max(56px, var(--sat))`.
+`--sat` / `--sab` exposed in `:root`, but **capped**: `--sat: min(env(safe-area-inset-top), 64px)` and `--sab: min(env(safe-area-inset-bottom), 44px)`. iOS WKWebView can report an inflated top inset after a system sheet (the NFC scanner) dismisses, which pushed every header down by a big margin. The cap clears the largest real iPhone inset (Dynamic Island 59px) while rejecting bogus values. All screens use `padding-top: max(56px, var(--sat))`.
+
+**Native background must match `cream`.** `capacitor.config.ts` `backgroundColor` and `index.html` `theme-color` are both `#f8f3eb` (the sRGB of `cream`). A mismatch shows as a faint lighter band in the status-bar / home-indicator safe areas where the native WKWebView background peeks through.
 
 ---
 
@@ -273,7 +281,7 @@ interface SpeciesProfile {
 }
 ```
 
-**v1 ships 6 species** (Monstera Deliciosa, Fiddle Leaf Fig, Peace Lily, Snake Plant Laurentii, Golden Pothos, Hoya Kerrii). The remaining 144 are deferred per Phase 1 decision §8.1.
+**v1 ships 138 species** (deduped from 150 — there were 12 duplicate-id entries). **119 have photos** (AI-generated, 720px JPG in `public/species/`); 19 still blank (gradient fallback), including the original 5 Unsplash placeholders that were cleared. Photo-to-id matching is done by `scripts/match-photos.mjs`.
 
 ### Storage keys (Preferences)
 - `plants_v1` — JSON array of Plant
@@ -314,10 +322,13 @@ All due/hydration funcs accept `DueOptions = { now?, hemisphere?, roomLight?, li
 - **Trigger:** user taps the floating "Hold to a plant tag" pill on Home → `NFC.startScan()` opens iOS Core NFC modal. iOS requires explicit user gesture per session — no auto-scan.
 - **Paired tag, >12h since last drink** → NfcMoment animation; auto-logs watering at 2.6s mark; routes to plant detail on completion.
 - **Paired tag, <12h since last drink** → AlreadyWateredSheet (Confirm / Cancel).
-- **Unknown/blank tag** → ErrorSheet `kind='tag-unknown'` → primary CTA navigates to /add with `pendingNfcWrite=true` banner.
+- **Blank tag (no `plant_id` payload)** → `BlankTagSheet` chooser: "Pair to an existing plant" (→ plant picker → `PairTagOverlay` writes the tag) or "Add a new plant" (→ /add with `pendingNfcWrite`).
+- **Unknown tag (has a `plant_id` payload but no matching plant, e.g. a tag paired before an app reset)** → ErrorSheet `kind='tag-unknown'`. Primary "Add new plant" → /add with `pendingNfcWrite`; secondary "Pair existing" → opens `BlankTagSheet` so the tag can be rewritten to an existing plant.
 - **Save plant with pendingNfcWrite** → `NFC.writeNDEF()` writes a Text record with `plant_<id>`.
 - **Tag write failure** → ErrorSheet `kind='tag-write-failed'`.
 - **No NFC device / web / simulator** → `NFC.startScan()` throws → caller catches and shows ErrorSheet `kind='nfc-unavailable'`.
+
+**Multi-read dedup (`src/App.tsx onRead`):** a single physical scan can fire several `onRead` events (an empty capability/NDEF message before the real `plant_id` message). A `null` parse therefore does NOT open the blank-tag chooser immediately — it is deferred ~450ms, and a known read in that window cancels it (plus a 1.5s guard against stray trailing empty reads). Without this, a known tag would briefly flash the blank-tag chooser stacked over the watering flow.
 
 **Apple constraint:** the "Near Field Communication Tag Reading" capability requires a paid Apple Developer Program account. Personal Team (free Apple ID) gets "No Matches" when searching capabilities. NFC code compiles and ships without the capability — it just throws at runtime. The Exxili plugin handles graceful fallback via its web shim.
 
@@ -469,7 +480,7 @@ Tracked for future work. None block the current build.
 1. **EmptyRoomState** — **DONE**. Rendered inline under each empty room header in HomeByRoom: paper card with dashed border, olive leaf glyph, quiet copy ("{Room} is quiet. No plants live here yet.") and an "Add one" pill that routes to /add.
 2. **Editable Hemisphere/region pickers in Settings** — **DONE**. SegmentSheet for Hemisphere, TextInputSheet for Region. All Settings pickers wired (reminderTime, quietHours, snooze, unit, hemisphere, region, pets).
 3. **Editable reminder time / quiet hours pickers** — **DONE** (same picker wiring as #2; TimePickerSheet and QuietHoursSheet).
-4. **Species library expansion** — **DONE · 150/150**. Five batches shipped covering foliage, aroids, succulents, cacti, flowering, statement, palms, ferns, carnivorous, specialty aroids (Anthurium Clarinervium, Philodendron Gloriosum/Melanochrysum, Alocasia Stingray/Dragon Scale, Monstera Albo/Thai Constellation), Tillandsias, Hoyas, Pothos varieties, holiday cacti, Echeverias, Aeonium, Sago Palm. All entries have empty photo strings (gradient fallback) and full 5-field care guides. Photos to be supplied later.
+4. **Species library expansion** — **DONE · 138 unique** (deduped from the original 150; 12 duplicate-id entries removed via `scripts/dedupe-species.mjs`). Covers foliage, aroids, succulents, cacti, flowering, statement, palms, ferns, carnivorous, specialty aroids, Tillandsias, Hoyas, Pothos varieties, holiday cacti, Echeverias, Aeonium, Sago Palm. Full 5-field care guides throughout. **119/138 now have AI-generated photos** (720px JPG); 19 remain blank (gradient fallback).
 5. **Notification appearance design** — iOS uses default banner; rich notification not yet designed.
 6. **Photo cleanup on swap** — **DONE**. Plant now carries `photoPath?: string`. `PhotoPicker.onChange` reports the new Filesystem path; `EditPlantForm` deletes the previous file via `removeStoredPhoto()` before swapping; `deletePlant` cleans up on plant removal. Reverting to species photo passes `undefined` so no orphaned data is left behind.
 7. **NFC preview side-effect** — **DONE**. `NfcMoment` accepts a `previewMode` boolean; when true, the `logWater()` side-effect is skipped. Settings preview now passes `previewMode`.
@@ -492,6 +503,15 @@ Tracked for future work. None block the current build.
 - **NFC amount picker on scan** ✓ — `AmountOnScanSheet` (`src/sheets/AmountOnScanSheet.tsx`) appears on paired-tag reads when `settings.watering.confirmAmountOnScan` is on (default). 3 preset chips (Light=winterMl, Recommended=recommendedMl, Heavy=recommendedMl×1.4) plus an inline custom stepper. Selected amount is passed through `NfcMoment` via a new `amountMl?: number` prop.
 - **Pair NFC tag from plant page** ✓ — `NfcAccordionRow` in `src/PlantDetail.tsx` (mounted inside the care guide accordion). Two states: unpaired → "Pair a sticker" button that calls `NFC.writeNDEF` with the plant's id; paired → "Paired · {date}" with explicit "Unpair" confirm flow. `Plant` gains `nfcPairedAt?: number`. Pairing in AddPlantScreen now also sets `nfcTagId` + `nfcPairedAt` after a successful write (previously it wrote but didn't persist).
 - **Blank tag chooser** ✓ — `BlankTagSheet` (`src/sheets/BlankTagSheet.tsx`) appears when a blank tag is held to the phone, replacing the previous `tag-unknown` error sheet for this case. Two-mode UX: chooser ("Pair to existing" vs "Add a new plant") → plant picker list. Tapping a plant fires `NFC.writeNDEF` inline; on success the plant gets paired and the app navigates to it.
+
+### Post-Phase-4 polish (latest session)
+- **App icon** ✓ — split dying-to-healthy leaf at `assets/icon.png` / `public/app-icon.png`. `AppIconMark` (`src/components/Brand.tsx`) renders it via `<img>`, driving both the onboarding welcome screen and the launch screen. Old `WateringCan` glyph is now unused but kept as an exported brand asset.
+- **Safe-area inset cap + cream colour match** ✓ — see §3 Safe area. Fixes the inflated-top-inset gap and the safe-area colour band after the NFC sheet dismisses.
+- **NFC multi-read dedup** ✓ — see §7. A known scan no longer flashes the blank-tag chooser.
+- **`tag-unknown` "Pair existing"** ✓ — was an unimplemented no-op; now opens `BlankTagSheet` (`App.tsx onSecondary`).
+- **Full data reset** ✓ — Settings → Data → "Clear all data". `store.clearAll` now deletes captured photos, cancels notifications, clears the badge, restores the seed room + default settings (so onboarding re-shows). Onboarding finish navigates explicitly (`intent: 'add' | 'skip'`): "Add my first plant" → `/add`, Skip → `/`. Fixes landing on Settings after a reset triggered there.
+- **New room on add** ✓ — `AddPlantScreen.handleSave` calls `addRoom({ name, light: 'medium' })` when the typed room is not an existing room (case-insensitive), so it appears in the by-room view immediately.
+- **Settings icon** ✓ — `GearGlyph` was drawn as a sun; redrawn as a proper cog.
 
 ### Wireframe review pass (10 fixes, commits d92547e + 711fc7c)
 - Plant Detail floating pill no longer overlaps scroll content (paddingBottom now `max(160px, calc(var(--sab) + 140px))`)
