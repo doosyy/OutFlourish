@@ -170,7 +170,10 @@ export default function App() {
     const state = useStore.getState()
     const plant = state.plants.find(p => p.id === plantId)
     if (!plant) {
-      setErrorSheet('tag-unknown')
+      // Tag has a plant_id that no longer matches any plant (e.g. paired before
+      // an app reset). Skip the error sheet and go straight to the chooser so
+      // the tag can be re-paired or used for a new plant.
+      setBlankTagOpen(true)
       return
     }
     const lastWatered = plant.history
