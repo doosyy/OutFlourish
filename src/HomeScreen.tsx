@@ -250,14 +250,6 @@ function SummaryWidget({ thirsty, onWaterAll }: { thirsty: AugmentedPlant[]; onW
             label="Water all"
             onClick={onWaterAll}
           />
-          <QuickAction
-            icon={<NFCGlyph color={PCT.cream} size={14} />}
-            label="Scan tag"
-          />
-          <QuickAction
-            icon={<LeafGlyph color={PCT.cream} size={14} />}
-            label="Notes"
-          />
         </div>
       </div>
     </div>
