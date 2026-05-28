@@ -30,7 +30,7 @@ import PhotoPicker from './components/PhotoPicker'
 import { removeStoredPhoto } from './photos'
 import { WateringSheet } from './sheets'
 import {
-  ChevronGlyph, EditGlyph, DotsGlyph, DropGlyph, FoodGlyph, RepotGlyph,
+  ChevronGlyph, EditGlyph, DropGlyph, FoodGlyph, RepotGlyph,
   SunGlyph, SeasonGlyph, TroubleGlyph, NFCGlyph,
 } from './components/Glyphs'
 
@@ -155,14 +155,9 @@ export default function PlantDetail() {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent }} />
             {dueLabel}
           </div>
-          <div className="flex gap-2">
-            <GlassCircle onClick={() => setShowEdit(v => !v)} ariaLabel="Edit">
-              <EditGlyph color={PCT.cream} size={16} />
-            </GlassCircle>
-            <GlassCircle ariaLabel="More">
-              <DotsGlyph color={PCT.cream} size={18} />
-            </GlassCircle>
-          </div>
+          <GlassCircle onClick={() => setShowEdit(v => !v)} ariaLabel="Edit">
+            <EditGlyph color={PCT.cream} size={16} />
+          </GlassCircle>
         </div>
       </div>
 
