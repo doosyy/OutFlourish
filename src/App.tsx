@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef, lazy, Suspense } from 'react'
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { App as CapApp } from '@capacitor/app'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { NFC } from '@exxili/capacitor-nfc'
 import { useStore, type Plant } from './store'
+import { useSwipeBack } from './useSwipeBack'
 import { PCT } from './tokens'
 import HomeScreen from './HomeScreen'
 import PlantDetail from './PlantDetail'
@@ -196,6 +197,17 @@ export default function App() {
       setNfcMomentPlant(plant)
     }
   }
+
+  // iOS-style edge-swipe back. Ignore while onboarding or any overlay/sheet is
+  // open, and at the home route (nothing to go back to).
+  const handleSwipeBack = useCallback(() => {
+    if (!settings.onboardingComplete) return
+    if (nfcMomentPlant || amountSheetPlant || blankTagOpen || pairOverlayPlant || errorSheet || pendingConfirm) return
+    const path = window.location.hash.replace(/^#/, '')
+    if (path === '/' || path === '') return
+    router.navigate(-1)
+  }, [settings.onboardingComplete, nfcMomentPlant, amountSheetPlant, blankTagOpen, pairOverlayPlant, errorSheet, pendingConfirm])
+  useSwipeBack(handleSwipeBack)
 
   const confirmPlant = pendingConfirm
     ? plants.find(p => p.id === pendingConfirm.plantId)
