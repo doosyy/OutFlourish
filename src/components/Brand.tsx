@@ -57,31 +57,23 @@ export function Wordmark({ size = 44, color = 'ink', accent, className }:
 }
 
 export function AppIconMark({ size = 200, className }: BrandProps) {
+  // The real app icon (split dying-to-healthy leaf). Rendered with the iOS
+  // rounded-square mask + soft shadow so onboarding/launch match the home
+  // screen. Source lives at public/app-icon.png and assets/icon.png.
   return (
-    <div
+    <img
+      src="/app-icon.png"
+      alt="OutFlourish"
+      width={size}
+      height={size}
       className={className}
       style={{
+        display: 'block',
         width: size,
         height: size,
         borderRadius: size * 0.225,
-        background: `radial-gradient(circle at 30% 25%, ${PCT.terracotta} 0%, ${PCT.terracottaDeep} 70%)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         boxShadow: `0 ${size * 0.06}px ${size * 0.12}px rgba(58,30,18,0.28), inset 0 1px 1px rgba(255,255,255,0.18)`,
-        position: 'relative',
-        overflow: 'hidden',
       }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: 'radial-gradient(circle at 80% 80%, rgba(0,0,0,0.18), transparent 60%)',
-          opacity: 0.7,
-        }}
-      />
-      <WateringCan size={size * 0.65} primary="cream" secondary="cream" />
-    </div>
+    />
   )
 }
