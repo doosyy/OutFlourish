@@ -10,7 +10,7 @@ import { NFCGlyph } from './components/Glyphs'
 type Step = 0 | 1 | 2 | 3
 
 interface Props {
-  onFinish: (opts: { hemisphere: Hemisphere; region: string }) => void
+  onFinish: (opts: { hemisphere: Hemisphere; region: string; intent: 'add' | 'skip' }) => void
 }
 
 const REGIONS: Array<{ label: string; hemisphere: Hemisphere; region: string }> = [
@@ -28,12 +28,12 @@ export default function Onboarding({ onFinish }: Props) {
 
   const handleNext = () => {
     if (step === 3) {
-      onFinish({ hemisphere: region.hemisphere, region: region.region })
+      onFinish({ hemisphere: region.hemisphere, region: region.region, intent: 'add' })
     } else {
       setStep(s => (s + 1) as Step)
     }
   }
-  const handleSkip = () => onFinish({ hemisphere: region.hemisphere, region: region.region })
+  const handleSkip = () => onFinish({ hemisphere: region.hemisphere, region: region.region, intent: 'skip' })
 
   return (
     <div
@@ -104,12 +104,6 @@ export default function Onboarding({ onFinish }: Props) {
           {step === 0 ? 'Begin' : step === 1 ? 'Continue' : step === 2 ? 'Sounds right' : 'Add my first plant'}
           <span style={{ fontStyle: 'normal' }}>→</span>
         </button>
-        {step === 3 && (
-          <button style={{
-            fontFamily: '"DM Serif Display", Georgia, serif',
-            fontStyle: 'italic', fontSize: 14, color: PCT.inkFaint,
-          }}>or scan a tag to begin</button>
-        )}
       </div>
     </div>
   )

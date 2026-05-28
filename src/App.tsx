@@ -201,8 +201,12 @@ export default function App() {
       {/* Onboarding — first launch only */}
       {isLoaded && !settings.onboardingComplete && (
         <Suspense fallback={<RouteFallback />}>
-          <Onboarding onFinish={async ({ hemisphere, region }) => {
+          <Onboarding onFinish={async ({ hemisphere, region, intent }) => {
             await completeOnboarding({ hemisphere, region })
+            // Reset can be triggered from any screen (e.g. Settings), so the
+            // router may still be on that route under the overlay. Navigate
+            // explicitly: the final CTA opens Add Plant, Skip goes home.
+            router.navigate(intent === 'add' ? '/add' : '/')
           }} />
         </Suspense>
       )}
