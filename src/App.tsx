@@ -302,8 +302,11 @@ export default function App() {
             // 'upload-failed' caller passes its own handler — this fallback dismisses
           }}
           onSecondary={() => {
+            const kind = errorSheet
             setErrorSheet(null)
-            // 'tag-unknown' secondary = "Pair existing" — TODO future picker
+            // 'tag-unknown' secondary = "Pair existing" → open the plant picker,
+            // which rewrites this tag with the chosen plant's id.
+            if (kind === 'tag-unknown') setBlankTagOpen(true)
             // 'tag-write-failed' secondary = "Skip pairing" — just dismiss
             // 'upload-failed' secondary = "Use stock" — just dismiss
           }}
