@@ -1,4 +1,4 @@
-// speciesLoader — lazy access to the 150-species DB.
+// speciesLoader — lazy access to the species DB (138 unique species).
 //
 // speciesDb.ts is ~140 kB of source (the bulk is rich care-guide prose).
 // Loading it in the initial chunk made the bundle 538 kB. This loader
