@@ -19,7 +19,7 @@ import { SearchGlyph, NFCGlyph } from './components/Glyphs'
 
 export default function AddPlantScreen() {
   const navigate = useNavigate()
-  const { addPlant, updatePlant, pendingNfcWrite, setPendingNfcWrite, rooms, setErrorSheet } = useStore()
+  const { addPlant, updatePlant, addRoom, pendingNfcWrite, setPendingNfcWrite, rooms, setErrorSheet } = useStore()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<SpeciesProfile | null>(null)
   const [name, setName] = useState('')
@@ -64,6 +64,12 @@ export default function AddPlantScreen() {
   const handleSave = async () => {
     if (!selected || !name.trim() || saving) return
     setSaving(true)
+    // If the room is a new name (not an existing room), create it so it shows
+    // up in the home "by room" view and in Settings without a manual step.
+    const roomName = room.trim()
+    if (roomName && !rooms.some(r => r.name.toLowerCase() === roomName.toLowerCase())) {
+      await addRoom({ name: roomName, light: 'medium' })
+    }
     const newPlant = await addPlant({
       name: name.trim(),
       species: selected.name,
