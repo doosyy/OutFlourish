@@ -10,7 +10,8 @@ import { execFileSync } from 'node:child_process'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = join(__dirname, '..')
-const SRC_FOLDER = '/Users/christopherdoos/Documents/ComfyUI/output/houseplants_mj/best'
+const SRC_FOLDER = process.argv.slice(2).find(a => a.startsWith('/'))
+  || '/Users/christopherdoos/Documents/ComfyUI/output/houseplants_mj/best'
 const outDir = join(root, 'public', 'species')
 const dbPath = join(root, 'src', 'speciesDb.ts')
 const APPLY = process.argv.includes('--apply')
@@ -20,13 +21,22 @@ const norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 // --- parse speciesDb for {id, name} in file order ---
 const db = readFileSync(dbPath, 'utf8')
 const lines = db.split('\n')
-const species = [] // {id, name}
+const species = [] // {id, name, aliases:[]}
 let curId = null
 for (const line of lines) {
   const idM = line.match(/^\s*id:\s*'([^']*)'/)
   if (idM) { curId = idM[1]; continue }
   const nameM = line.match(/^\s*name:\s*(['"])(.*?)\1/)
-  if (nameM && curId) { species.push({ id: curId, name: nameM[2] }); curId = null }
+  if (nameM && curId) {
+    species.push({ id: curId, name: nameM[2], aliases: [] })
+    continue
+  }
+  const aliasM = line.match(/^\s*aliases:\s*\[(.*)\]/)
+  if (aliasM && curId && species.length && species[species.length - 1].id === curId) {
+    const aliases = [...aliasM[1].matchAll(/(['"])(.*?)\1/g)].map(m => m[2])
+    species[species.length - 1].aliases = aliases
+    curId = null
+  }
 }
 
 // normalized name -> [ids]
@@ -35,6 +45,15 @@ for (const s of species) {
   const k = norm(s.name)
   if (!byName.has(k)) byName.set(k, [])
   byName.get(k).push(s.id)
+}
+// normalized alias -> [ids] (fallback only; never overrides a name match)
+const byAlias = new Map()
+for (const s of species) {
+  for (const a of s.aliases) {
+    const k = norm(a)
+    if (!byAlias.has(k)) byAlias.set(k, [])
+    byAlias.get(k).push(s.id)
+  }
 }
 
 // --- list photos ---
@@ -45,7 +64,9 @@ const unmatched = []
 for (const f of files) {
   const stem = basename(f, extname(f))
   const k = norm(stem)
-  const ids = byName.get(k)
+  let ids = byName.get(k)
+  // Alias fallback: only when the alias resolves to exactly one species.
+  if (!ids) { const a = byAlias.get(k); if (a && a.length === 1) ids = a }
   if (ids) matched.push({ file: f, ids, stem })
   else unmatched.push(f)
 }
