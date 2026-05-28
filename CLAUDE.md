@@ -323,6 +323,14 @@ All due/hydration funcs accept `DueOptions = { now?, hemisphere?, roomLight?, li
 
 **Payload format:** NDEF Well-Known Text record. First byte = status (bits 0-5 = language-code length), then language code (`en` = 2 bytes), then UTF-8 text. `parsePlantIdFromNdefPayload()` reads it back. We pass `rawMode: true` to `writeNDEF` so we build the framing ourselves.
 
+**Blank-tag formatting (patched plugin):** The upstream `@exxili/capacitor-nfc` writer used an `NFCNDEFReaderSession`, which can only write to tags already reporting `.readWrite` from `queryNDEFStatus`. Factory-fresh NTAG21x stickers are frequently shipped UN-formatted (their Capability Container is uninitialised), so they report `.notSupported` and the very first write fails — while a tag that had been written once worked fine. We patch `NFCWriter.swift` (via `patch-package`, see §15) to use an `NFCTagReaderSession` instead, which exposes the raw `.miFare` command channel. On `.notSupported` it:
+1. Sends `GET_VERSION` (`0x60`) and verifies vendor `0x04` (NXP) + product `0x04` (NTAG).
+2. Maps the storage-size code to the CC size byte (NTAG213 `0x0F`→`0x12`, NTAG215 `0x11`→`0x3E`, NTAG216 `0x13`→`0x6D`).
+3. Writes the Capability Container to page 3 (`A2 03 E1 10 <size> 00`) and an empty NDEF TLV to page 4 (`A2 04 03 00 FE 00`).
+4. Re-queries status and writes the real message.
+
+The formatting branch ONLY runs on the path that already failed (`.notSupported`) and only for verified NXP NTAG tags, so it can never regress a tag that already worked. Unrecognised tag types bail out with a friendly invalidate message. Requires the `TAG` entitlement format (already present in `App.entitlements` alongside `NDEF`), since `NFCTagReaderSession` needs it. This writes to the tag's one-time-programmable CC page, so test with a single fresh sticker before a batch.
+
 **API summary** (live in `src/App.tsx`, `src/HomeScreen.tsx`, `src/AddPlantScreen.tsx`):
 ```ts
 import { NFC } from '@exxili/capacitor-nfc'
@@ -534,6 +542,12 @@ Tracked for future work. None block the current build.
 - iOS Core NFC sessions are short-lived (~60s) and end when a tag is read or the user dismisses the modal. We do not try to keep a persistent session — each scan is a fresh `startScan()`.
 - Writing: build the NDEF Text record framing manually (status byte + lang code + UTF-8 text), pass with `rawMode: true`. The plugin's auto-framing for type `'T'` doubles up the language code prefix.
 - **Capability is a paywall**: even with the free plugin, the Xcode "NFC Tag Reading" capability requires a paid Apple Developer Program account. The code compiles and runs fine without it; NFC just throws at runtime, which we already handle.
+
+### Patched plugin: blank-tag formatting (patch-package)
+- We patch `node_modules/@exxili/capacitor-nfc/ios/Sources/NFCPlugin/NFCWriter.swift` to format un-formatted NTAG21x tags before writing (full rationale + byte sequences in §7 "Blank-tag formatting"). Symptom it fixes: fresh stickers gave "tag not found" / write failures on their first pair, while already-written tags worked.
+- The patch is locked in with **`patch-package`** (devDependency) + a `"postinstall": "patch-package"` script in `package.json`. The patch lives at `patches/@exxili+capacitor-nfc+0.0.13.patch` and is committed. Any `npm install` reapplies it automatically — never hand-edit the file in `node_modules` and expect it to persist; instead edit it, then run `npx patch-package @exxili/capacitor-nfc` to regenerate the patch.
+- The pod compiles straight from `node_modules` (`pod 'ExxiliCapacitorNfc', :path => '../../node_modules/@exxili/capacitor-nfc'`, source_files `ios/Sources/**/*.swift`), so the patched Swift is what Xcode builds after `npx cap sync ios` + `pod install`.
+- Local gotcha: `pod install` here fails under `npx cap sync ios` with a CocoaPods `Encoding::CompatibilityError` unless the locale is UTF-8. Run `cd ios/App && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install` if the sync's pod step errors out.
 
 ### Wave physics in PlantPhotoMeter
 - `buildWavePath(yBase, size, amp)` builds a path 3× the meter width with 9 peaks. Translating by `-100%` then loops seamlessly with linear timing.
