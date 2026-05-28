@@ -30,7 +30,7 @@ import PhotoPicker from './components/PhotoPicker'
 import { removeStoredPhoto } from './photos'
 import { WateringSheet } from './sheets'
 import {
-  ChevronGlyph, EditGlyph, DropGlyph, FoodGlyph, RepotGlyph,
+  ChevronGlyph, DropGlyph, FoodGlyph, RepotGlyph,
   SunGlyph, SeasonGlyph, TroubleGlyph, NFCGlyph,
 } from './components/Glyphs'
 
@@ -155,9 +155,8 @@ export default function PlantDetail() {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent }} />
             {dueLabel}
           </div>
-          <GlassCircle onClick={() => setShowEdit(v => !v)} ariaLabel="Edit">
-            <EditGlyph color={PCT.cream} size={16} />
-          </GlassCircle>
+          {/* Spacer keeps the status pill centred (Edit lives lower on the page). */}
+          <div style={{ width: 36, height: 36, flexShrink: 0 }} aria-hidden />
         </div>
       </div>
 
