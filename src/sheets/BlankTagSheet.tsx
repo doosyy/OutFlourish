@@ -14,6 +14,9 @@ import { NFCGlyph, PlusGlyph, LeafGlyph, ChevronGlyph } from '../components/Glyp
 
 interface Props {
   plants: Plant[]
+  /** Why the chooser opened: 'blank' = unwritten tag; 'unknown' = a tag whose
+   *  plant_id no longer matches any plant. Only changes the eyebrow label. */
+  kind?: 'blank' | 'unknown'
   /** Fired when the user picks a plant to pair. Parent should close the
    *  sheet and open PairTagOverlay with this plant. */
   onPairExisting: (plant: Plant) => void
@@ -21,7 +24,7 @@ interface Props {
   onCancel: () => void
 }
 
-export default function BlankTagSheet({ plants, onPairExisting, onCreateNew, onCancel }: Props) {
+export default function BlankTagSheet({ plants, kind = 'blank', onPairExisting, onCreateNew, onCancel }: Props) {
   const [mode, setMode] = useState<'choose' | 'pick'>('choose')
 
   const handlePick = (plant: Plant) => {
@@ -42,7 +45,7 @@ export default function BlankTagSheet({ plants, onPairExisting, onCreateNew, onC
             fontFamily: 'ui-monospace, "SF Mono", monospace',
             fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
             color: PCT.terracotta, marginBottom: 2,
-          }}>A blank tag</div>
+          }}>{kind === 'unknown' ? 'An unknown tag' : 'A blank tag'}</div>
           <div style={{
             fontFamily: '"DM Serif Display", Georgia, serif',
             fontSize: 22, lineHeight: 1.1, color: PCT.ink,

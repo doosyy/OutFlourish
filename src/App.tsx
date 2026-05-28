@@ -66,8 +66,10 @@ export default function App() {
   const [nfcMomentAmount, setNfcMomentAmount] = useState<number | undefined>(undefined)
   // Amount picker — when settings.watering.confirmAmountOnScan is on
   const [amountSheetPlant, setAmountSheetPlant] = useState<Plant | null>(null)
-  // Blank-tag chooser — when a tag has no plant id payload
+  // Blank-tag chooser — when a tag has no plant id payload, or an unknown one
   const [blankTagOpen, setBlankTagOpen] = useState(false)
+  // Why the chooser opened: 'blank' = no payload; 'unknown' = stale plant_id.
+  const [blankTagKind, setBlankTagKind] = useState<'blank' | 'unknown'>('blank')
   // PairTagOverlay state — opened by the BlankTagSheet plant picker
   const [pairOverlayPlant, setPairOverlayPlant] = useState<Plant | null>(null)
   // NFC scan dedup: a single physical scan can fire several onRead events.
@@ -142,6 +144,7 @@ export default function App() {
         blankTagTimer.current = setTimeout(() => {
           blankTagTimer.current = null
           if (Date.now() - lastKnownScanAt.current < 1500) return
+          setBlankTagKind('blank')
           setBlankTagOpen(true)
         }, 450)
       }
@@ -173,6 +176,7 @@ export default function App() {
       // Tag has a plant_id that no longer matches any plant (e.g. paired before
       // an app reset). Skip the error sheet and go straight to the chooser so
       // the tag can be re-paired or used for a new plant.
+      setBlankTagKind('unknown')
       setBlankTagOpen(true)
       return
     }
@@ -256,6 +260,7 @@ export default function App() {
       {blankTagOpen && (
         <BlankTagSheet
           plants={plants}
+          kind={blankTagKind}
           onPairExisting={(plant) => {
             // Close the bottom sheet, then open the top-anchored
             // PairTagOverlay which actually fires the NFC write.
@@ -309,7 +314,7 @@ export default function App() {
             setErrorSheet(null)
             // 'tag-unknown' secondary = "Pair existing" → open the plant picker,
             // which rewrites this tag with the chosen plant's id.
-            if (kind === 'tag-unknown') setBlankTagOpen(true)
+            if (kind === 'tag-unknown') { setBlankTagKind('unknown'); setBlankTagOpen(true) }
             // 'tag-write-failed' secondary = "Skip pairing" — just dismiss
             // 'upload-failed' secondary = "Use stock" — just dismiss
           }}
