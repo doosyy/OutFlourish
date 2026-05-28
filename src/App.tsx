@@ -4,7 +4,7 @@ import { App as CapApp } from '@capacitor/app'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { NFC } from '@exxili/capacitor-nfc'
 import { useStore, type Plant } from './store'
-import { useSwipeBack } from './useSwipeBack'
+import SwipeBackContainer from './SwipeBack'
 import { PCT } from './tokens'
 import HomeScreen from './HomeScreen'
 import PlantDetail from './PlantDetail'
@@ -198,16 +198,15 @@ export default function App() {
     }
   }
 
-  // iOS-style edge-swipe back. Ignore while onboarding or any overlay/sheet is
-  // open, and at the home route (nothing to go back to).
-  const handleSwipeBack = useCallback(() => {
-    if (!settings.onboardingComplete) return
-    if (nfcMomentPlant || amountSheetPlant || blankTagOpen || pairOverlayPlant || errorSheet || pendingConfirm) return
+  // iOS-style interactive edge-swipe back. Disengage while onboarding or any
+  // overlay/sheet is open, and at the home route (nothing to go back to).
+  const canSwipeBack = useCallback(() => {
+    if (!settings.onboardingComplete) return false
+    if (nfcMomentPlant || amountSheetPlant || blankTagOpen || pairOverlayPlant || errorSheet || pendingConfirm) return false
     const path = window.location.hash.replace(/^#/, '')
-    if (path === '/' || path === '') return
-    router.navigate(-1)
+    return path !== '/' && path !== ''
   }, [settings.onboardingComplete, nfcMomentPlant, amountSheetPlant, blankTagOpen, pairOverlayPlant, errorSheet, pendingConfirm])
-  useSwipeBack(handleSwipeBack)
+  const goBack = useCallback(() => router.navigate(-1), [])
 
   const confirmPlant = pendingConfirm
     ? plants.find(p => p.id === pendingConfirm.plantId)
@@ -215,7 +214,9 @@ export default function App() {
 
   return (
     <>
-      <RouterProvider router={router} />
+      <SwipeBackContainer canGoBack={canSwipeBack} onBack={goBack}>
+        <RouterProvider router={router} />
+      </SwipeBackContainer>
 
       {/* Onboarding — first launch only */}
       {isLoaded && !settings.onboardingComplete && (
