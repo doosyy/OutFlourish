@@ -728,9 +728,35 @@ export const useStore = create<AppStore>()((set, get) => ({
   },
 
   clearAll: async () => {
-    set({ plants: [], rooms: [], settings: DEFAULT_SETTINGS })
+    // Delete any user-captured photos from the filesystem.
+    await Promise.allSettled(
+      get().plants
+        .filter(p => p.photoPath)
+        .map(p => removeStoredPhoto(p.photoPath)),
+    )
+    // Cancel scheduled reminders and clear the app-icon badge.
+    try {
+      const pending = await LocalNotifications.getPending()
+      if (pending.notifications.length) {
+        await LocalNotifications.cancel({ notifications: pending.notifications })
+      }
+    } catch { /* web/simulator */ }
+    try { await Badge.clear() } catch { /* web/simulator */ }
+
+    // Reset to a first-launch state: empty plants, the seed room, default
+    // settings (onboardingComplete: false so onboarding shows again), and
+    // clear all transient UI state.
+    set({
+      plants: [],
+      rooms: [SEED_ROOM],
+      settings: DEFAULT_SETTINGS,
+      pendingConfirm: null,
+      pendingNfcWrite: false,
+      lastWaterAction: null,
+      errorSheet: null,
+    })
     await Repository.savePlants([])
-    await Repository.saveRooms([])
+    await Repository.saveRooms([SEED_ROOM])
     await Repository.saveSettings(DEFAULT_SETTINGS)
   },
 

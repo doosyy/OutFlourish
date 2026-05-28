@@ -240,7 +240,7 @@ export default function SettingsScreen() {
           chevron onClick={() => fileRef.current?.click()}
           control={<ChevronGlyph color={PCT.inkFaint} size={16} direction="right" />} />
         <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
-        <Row label="Clear all data" hint="Permanently remove every plant."
+        <Row label="Clear all data" hint="Erase everything and start fresh."
           tone="danger" chevron onClick={() => setPicker('clearData')}
           control={<ChevronGlyph color={PCT.thirsty} size={16} direction="right" />} />
       </Group>
@@ -730,7 +730,7 @@ function ClearDataSheet({ onConfirm, onCancel }: { onConfirm: () => void; onCanc
     <SheetBase onDismiss={onCancel}>
       <SheetTitle
         title="Clear all data"
-        hint="This permanently removes every plant, room, and watering history from this device. It cannot be undone."
+        hint="This permanently removes every plant, room, watering history, and setting from this device, then returns the app to a fresh first launch. It cannot be undone."
       />
       {!confirmed ? (
         <div className="flex gap-2.5">

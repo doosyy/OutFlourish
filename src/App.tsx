@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react'
+import { useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { App as CapApp } from '@capacitor/app'
 import { LocalNotifications } from '@capacitor/local-notifications'
@@ -70,6 +70,11 @@ export default function App() {
   const [blankTagOpen, setBlankTagOpen] = useState(false)
   // PairTagOverlay state — opened by the BlankTagSheet plant picker
   const [pairOverlayPlant, setPairOverlayPlant] = useState<Plant | null>(null)
+  // NFC scan dedup: a single physical scan can fire several onRead events.
+  // These guard the blank-tag chooser against an empty message that arrives
+  // alongside (or just before) the real plant_id message.
+  const blankTagTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastKnownScanAt = useRef(0)
 
   useEffect(() => {
     load()
@@ -114,10 +119,31 @@ export default function App() {
         if (plantId) break
       }
       if (plantId) {
+        // Known tag → straight to watering. A single scan can arrive as
+        // MULTIPLE onRead events (an empty capability/NDEF message before the
+        // real plant_id message). The empty one parses to null and would open
+        // the blank-tag chooser, so a known read must cancel any pending or
+        // already-open blank-tag UI and record the time so a stray late empty
+        // read does not re-open it.
+        lastKnownScanAt.current = Date.now()
+        if (blankTagTimer.current) {
+          clearTimeout(blankTagTimer.current)
+          blankTagTimer.current = null
+        }
+        setBlankTagOpen(false)
         handleNfcScan(plantId)
       } else {
-        // Tag had no plant_id payload — open the blank-tag chooser
-        setBlankTagOpen(true)
+        // No plant_id in this message. It may just precede the real one in a
+        // multi-message read, so defer the blank-tag chooser briefly; a known
+        // read in the window cancels it. Also skip if a known tag was handled
+        // moments ago (stray trailing empty read from the same scan).
+        if (Date.now() - lastKnownScanAt.current < 1500) return
+        if (blankTagTimer.current) clearTimeout(blankTagTimer.current)
+        blankTagTimer.current = setTimeout(() => {
+          blankTagTimer.current = null
+          if (Date.now() - lastKnownScanAt.current < 1500) return
+          setBlankTagOpen(true)
+        }, 450)
       }
       // Same reflow nudge as onError below.
       setTimeout(() => window.dispatchEvent(new Event('resize')), 120)
@@ -133,6 +159,7 @@ export default function App() {
     return () => {
       unsubRead()
       unsubError()
+      if (blankTagTimer.current) clearTimeout(blankTagTimer.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
