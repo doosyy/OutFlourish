@@ -1,0 +1,227 @@
+diff --git a/node_modules/@exxili/capacitor-nfc/ios/Sources/NFCPlugin/NFCWriter.swift b/node_modules/@exxili/capacitor-nfc/ios/Sources/NFCPlugin/NFCWriter.swift
+index 97c25c3..89d9a9a 100644
+--- a/node_modules/@exxili/capacitor-nfc/ios/Sources/NFCPlugin/NFCWriter.swift
++++ b/node_modules/@exxili/capacitor-nfc/ios/Sources/NFCPlugin/NFCWriter.swift
+@@ -1,8 +1,24 @@
+ import Foundation
+ import CoreNFC
+ 
+-@objc public class NFCWriter: NSObject, NFCNDEFReaderSessionDelegate {
+-    private var writerSession: NFCNDEFReaderSession?
++// Patched by OutFlourish (via patch-package).
++//
++// The upstream writer used an NFCNDEFReaderSession, which can ONLY write to
++// tags that already report `.readWrite` from queryNDEFStatus. Brand-new NTAG21x
++// stickers are frequently shipped UN-formatted (their Capability Container has
++// not been initialised), so they report `.notSupported` and the very first
++// write fails. Once a tag has been written once it stays formatted, which is
++// why "already written" tags worked and fresh ones did not.
++//
++// This version uses an NFCTagReaderSession so we get the raw `.miFare`
++// interface. When a tag is not yet NDEF-formatted we initialise it ourselves
++// (write the NTAG Capability Container + an empty NDEF TLV) and then write the
++// message. The formatting branch ONLY runs for genuinely blank, NXP NTAG21x
++// tags (verified via GET_VERSION); anything else falls through untouched, so
++// this can never make a previously-working case worse.
++
++@objc public class NFCWriter: NSObject, NFCTagReaderSessionDelegate {
++    private var session: NFCTagReaderSession?
+     private var messageToWrite: NFCNDEFMessage?
+ 
+     public var onWriteSuccess: (() -> Void)?
+@@ -12,29 +28,32 @@ import CoreNFC
+         print("NFCWriter startWriting called")
+         self.messageToWrite = message
+ 
+-        guard NFCNDEFReaderSession.readingAvailable else {
++        guard NFCTagReaderSession.readingAvailable else {
+             print("NFC writing not supported on this device")
+             return
+         }
+-        writerSession = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
+-        writerSession?.alertMessage = "Hold your iPhone near the NFC tag to write."
+-        writerSession?.begin()
++        // NTAG21x are ISO 14443 Type A (MiFare family).
++        session = NFCTagReaderSession(pollingOption: [.iso14443], delegate: self, queue: nil)
++        session?.alertMessage = "Hold your iPhone near the NFC tag to write."
++        session?.begin()
+     }
+ 
+-    public func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
++    // MARK: - NFCTagReaderSessionDelegate
++
++    public func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
++        // No-op.
+     }
+ 
+-    // NFCNDEFReaderSessionDelegate methods for writing
+-    public func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: Error) {
++    public func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
+         print("NFC writer session error: \(error.localizedDescription)")
++        if let nfcError = error as? NFCReaderError,
++           nfcError.code == .readerSessionInvalidationErrorUserCanceled {
++            return
++        }
+         onError?(error)
+     }
+ 
+-    public func readerSessionDidBecomeActive(_ session: NFCNDEFReaderSession) {
+-
+-    }
+-
+-    public func readerSession(_ session: NFCNDEFReaderSession, didDetect tags: [NFCNDEFTag]) {
++    public func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
+         if tags.count > 1 {
+             let retryInterval = DispatchTimeInterval.milliseconds(500)
+             session.alertMessage = "More than one tag detected. Please try again."
+@@ -44,7 +63,17 @@ import CoreNFC
+             return
+         }
+ 
+-        guard let tag = tags.first else { return }
++        guard let tag = tags.first else {
++            session.invalidate(errorMessage: "No tag found.")
++            return
++        }
++
++        // Only NTAG / MiFare tags expose the raw command channel we need for
++        // formatting. Other tag types still go through the standard NDEF path.
++        guard case let .miFare(miFareTag) = tag else {
++            session.invalidate(errorMessage: "This tag type is not supported.")
++            return
++        }
+ 
+         session.connect(to: tag) { (error) in
+             if let error = error {
+@@ -53,7 +82,7 @@ import CoreNFC
+                 return
+             }
+ 
+-            tag.queryNDEFStatus { (ndefStatus, _, error) in
++            miFareTag.queryNDEFStatus { (ndefStatus, _, error) in
+                 if let error = error {
+                     session.invalidate(errorMessage: "Unable to query the NDEF status of tag.")
+                     self.onError?(error)
+@@ -61,29 +90,105 @@ import CoreNFC
+                 }
+ 
+                 switch ndefStatus {
+-                case .notSupported:
+-                    session.invalidate(errorMessage: "Tag is not NDEF compliant.")
++                case .readWrite:
++                    self.write(to: miFareTag, session: session)
+                 case .readOnly:
+                     session.invalidate(errorMessage: "Tag is read-only.")
+-                case .readWrite:
+-                    if let message = self.messageToWrite {
+-                        tag.writeNDEF(message) { (error) in
+-                            if let error = error {
+-                                session.invalidate(errorMessage: "Failed to write NDEF message.")
+-                                self.onError?(error)
+-                                return
+-                            }
+-                            session.alertMessage = "NDEF message written successfully."
+-                            session.invalidate()
+-                            self.onWriteSuccess?()
+-                        }
+-                    } else {
+-                        session.invalidate(errorMessage: "No message to write.")
+-                    }
++                case .notSupported:
++                    // Fresh / unformatted tag: try to initialise it, then write.
++                    self.format(miFareTag, session: session)
+                 @unknown default:
+                     session.invalidate(errorMessage: "Unknown NDEF tag status.")
+                 }
+             }
+         }
+     }
++
++    // MARK: - Write
++
++    private func write(to tag: NFCMiFareTag, session: NFCTagReaderSession) {
++        guard let message = self.messageToWrite else {
++            session.invalidate(errorMessage: "No message to write.")
++            return
++        }
++        tag.writeNDEF(message) { (error) in
++            if let error = error {
++                session.invalidate(errorMessage: "Failed to write NDEF message.")
++                self.onError?(error)
++                return
++            }
++            session.alertMessage = "NDEF message written successfully."
++            session.invalidate()
++            self.onWriteSuccess?()
++        }
++    }
++
++    // MARK: - Formatting a blank NTAG21x
++
++    private func format(_ tag: NFCMiFareTag, session: NFCTagReaderSession) {
++        // GET_VERSION (0x60) tells us the vendor and storage size so we can
++        // write the correct Capability Container and confirm this really is an
++        // NXP NTAG before we touch its one-time-programmable CC page.
++        let getVersion = Data([0x60])
++        tag.sendMiFareCommand(commandPacket: getVersion) { (response, error) in
++            if let error = error {
++                session.invalidate(errorMessage: "This tag can't be formatted automatically.")
++                self.onError?(error)
++                return
++            }
++
++            // NTAG GET_VERSION response:
++            //   [0]=fixed 0x00, [1]=vendor (0x04 = NXP), [2]=product type
++            //   (0x04 = NTAG), [6]=storage size code.
++            guard response.count >= 7, response[1] == 0x04, response[2] == 0x04 else {
++                session.invalidate(errorMessage: "This tag needs to be formatted before use.")
++                return
++            }
++
++            // Storage size -> CC size byte (user memory / 8).
++            //   NTAG213 = 0x0F -> 0x12 (144 bytes)
++            //   NTAG215 = 0x11 -> 0x3E (504 bytes)
++            //   NTAG216 = 0x13 -> 0x6D (888 bytes)
++            let ccSize: UInt8
++            switch response[6] {
++            case 0x0F: ccSize = 0x12
++            case 0x11: ccSize = 0x3E
++            case 0x13: ccSize = 0x6D
++            default:
++                session.invalidate(errorMessage: "This tag needs to be formatted before use.")
++                return
++            }
++
++            // WRITE (0xA2) page 3 = Capability Container: E1 10 <size> 00
++            let ccCommand = Data([0xA2, 0x03, 0xE1, 0x10, ccSize, 0x00])
++            tag.sendMiFareCommand(commandPacket: ccCommand) { (_, error) in
++                if let error = error {
++                    session.invalidate(errorMessage: "Couldn't prepare the tag.")
++                    self.onError?(error)
++                    return
++                }
++
++                // WRITE (0xA2) page 4 = empty NDEF TLV: 03 00 FE 00
++                let tlvCommand = Data([0xA2, 0x04, 0x03, 0x00, 0xFE, 0x00])
++                tag.sendMiFareCommand(commandPacket: tlvCommand) { (_, error) in
++                    if let error = error {
++                        session.invalidate(errorMessage: "Couldn't prepare the tag.")
++                        self.onError?(error)
++                        return
++                    }
++
++                    // The tag is now NDEF-formatted; write the real message.
++                    tag.queryNDEFStatus { (status, _, _) in
++                        if status == .readWrite {
++                            self.write(to: tag, session: session)
++                        } else {
++                            // Some controllers report stale status immediately
++                            // after formatting; attempt the write regardless.
++                            self.write(to: tag, session: session)
++                        }
++                    }
++                }
++            }
++        }
++    }
+ }
