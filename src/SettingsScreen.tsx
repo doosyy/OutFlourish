@@ -247,7 +247,7 @@ export default function SettingsScreen() {
 
       {/* About */}
       <Group title="About">
-        <Row label="Version" control={<Plain>1.0.0 · Phase 4</Plain>} />
+        <Row label="Version" control={<Plain>1.0.0</Plain>} />
         <Row label="Made in" control={<Plain>Carlton North, Melbourne</Plain>} />
         <Row label="Privacy" chevron onClick={() => navigate('/privacy')}
           control={<ChevronGlyph color={PCT.inkFaint} size={16} direction="right" />} />

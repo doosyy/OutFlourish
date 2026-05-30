@@ -384,28 +384,109 @@ async function updateBadge(plants: Plant[], opts: DueOptions): Promise<void> {
   }
 }
 
-async function scheduleNotifications(plants: Plant[], opts: DueOptions): Promise<void> {
+/** Parse 'HH:mm' into { h, m }. Falls back to 07:30 on malformed input. */
+function parseHm(hm: string): { h: number; m: number } {
+  const [h, m] = hm.split(':').map(n => parseInt(n, 10))
+  return {
+    h: Number.isFinite(h) ? Math.min(23, Math.max(0, h)) : 7,
+    m: Number.isFinite(m) ? Math.min(59, Math.max(0, m)) : 30,
+  }
+}
+
+/** Minutes-since-midnight for an 'HH:mm' string. */
+function hmToMinutes(hm: string): number {
+  const { h, m } = parseHm(hm)
+  return h * 60 + m
+}
+
+/** True if a given Date's wall-clock time lands inside the quiet window
+ *  (which may wrap past midnight, e.g. 21:00–07:00). */
+function isQuiet(date: Date, quiet: { start: string; end: string }): boolean {
+  const mins = date.getHours() * 60 + date.getMinutes()
+  const start = hmToMinutes(quiet.start)
+  const end = hmToMinutes(quiet.end)
+  if (start === end) return false
+  return start < end ? mins >= start && mins < end : mins >= start || mins < end
+}
+
+/** The reminder moment for a plant: the configured reminder time, on the due
+ *  date if that morning is still ahead, otherwise the next upcoming reminder
+ *  time. Pushed to the end of quiet hours if it would land inside them. */
+function reminderMomentFor(dueTs: number, now: number, settings: AppSettings['reminders']): number {
+  const { h, m } = parseHm(settings.timeOfDay)
+  const dueMorning = new Date(dueTs); dueMorning.setHours(h, m, 0, 0)
+
+  let fire: Date
+  if (dueMorning.getTime() > now) {
+    fire = dueMorning
+  } else {
+    // Due-date morning has passed (or the plant is overdue): next reminder time.
+    fire = new Date(now); fire.setHours(h, m, 0, 0)
+    if (fire.getTime() <= now) fire.setDate(fire.getDate() + 1)
+  }
+  // Nudge out of quiet hours to the moment quiet hours end.
+  if (isQuiet(fire, settings.quietHours)) {
+    const { h: eh, m: em } = parseHm(settings.quietHours.end)
+    const end = new Date(fire); end.setHours(eh, em, 0, 0)
+    if (end.getTime() <= fire.getTime()) end.setDate(end.getDate() + 1)
+    fire = end
+  }
+  return fire.getTime()
+}
+
+/** Editorial, single-sentence copy for a morning batch of thirsty plants. */
+function notificationCopy(names: string[]): { title: string; body: string } {
+  const n = names.length
+  if (n === 1) return { title: `${names[0]} is thirsty`, body: 'A drink would be appreciated when you have a moment.' }
+  if (n === 2) return { title: '2 plants are thirsty', body: `${names[0]} and ${names[1]} are due for water.` }
+  const others = n - 2
+  return {
+    title: `${n} plants are thirsty`,
+    body: `${names[0]}, ${names[1]}, and ${others} other${others !== 1 ? 's' : ''} are due for water.`,
+  }
+}
+
+async function scheduleNotifications(plants: Plant[], opts: DueOptions, reminders: AppSettings['reminders']): Promise<void> {
   try {
+    // Always clear what's pending so toggling off / re-scheduling is clean.
+    const pending = await LocalNotifications.getPending()
+    if (pending.notifications.length > 0) {
+      await LocalNotifications.cancel({ notifications: pending.notifications })
+    }
+    if (!reminders.enabled) return
+
     const { display } = await LocalNotifications.checkPermissions()
     if (display !== 'granted') {
       const { display: granted } = await LocalNotifications.requestPermissions()
       if (granted !== 'granted') return
     }
-    const pending = await LocalNotifications.getPending()
-    if (pending.notifications.length > 0) {
-      await LocalNotifications.cancel({ notifications: pending.notifications })
-    }
+
     const now = Date.now()
-    const notifications = plants
-      .map((p, i) => ({ plant: p, due: getNextWateredDue(p, { ...opts, now }), index: i }))
-      .filter(({ due }) => due > now)
-      .map(({ plant, due, index }) => ({
-        id: index + 1,
-        title: `${plant.name} needs water`,
-        body: 'Tap to open OutFlourish and log a watering.',
-        schedule: { at: new Date(due) },
-        extra: { plantId: plant.id },
-      }))
+    // Group plants by the morning we'll remind about them.
+    const byMoment = new Map<number, Plant[]>()
+    for (const p of plants) {
+      if (getLastWatered(p) === null) continue // never watered → no schedule yet
+      const due = getNextWateredDue(p, { ...opts, now })
+      const moment = reminderMomentFor(due, now, reminders)
+      if (moment <= now) continue
+      const arr = byMoment.get(moment) ?? []
+      arr.push(p)
+      byMoment.set(moment, arr)
+    }
+
+    // One notification per morning. Cap at iOS's comfortable limit.
+    const moments = [...byMoment.keys()].sort((a, b) => a - b).slice(0, 60)
+    const notifications = moments.map((moment, i) => {
+      const group = byMoment.get(moment)!
+      const { title, body } = notificationCopy(group.map(p => p.name))
+      return {
+        id: i + 1,
+        title,
+        body,
+        schedule: { at: new Date(moment) },
+        extra: group.length === 1 ? { plantId: group[0].id } : {},
+      }
+    })
     if (notifications.length > 0) {
       await LocalNotifications.schedule({ notifications })
     }
@@ -488,7 +569,10 @@ async function updateAll(state: { plants: Plant[]; settings: AppSettings; rooms:
     hemisphere: state.settings.season.hemisphere,
     lightAware: state.settings.rooms.lightAwareCare,
   }
-  await Promise.allSettled([updateBadge(state.plants, opts), scheduleNotifications(state.plants, opts)])
+  await Promise.allSettled([
+    updateBadge(state.plants, opts),
+    scheduleNotifications(state.plants, opts, state.settings.reminders),
+  ])
 }
 
 export const useStore = create<AppStore>()((set, get) => ({
@@ -536,6 +620,7 @@ export const useStore = create<AppStore>()((set, get) => ({
   },
 
   deletePlant: async (id) => {
+    try { await Haptics.impact({ style: ImpactStyle.Heavy }) } catch { /* web */ }
     const target = get().plants.find(p => p.id === id)
     const plants = get().plants.filter(p => p.id !== id)
     set({ plants })
@@ -657,6 +742,8 @@ export const useStore = create<AppStore>()((set, get) => ({
     if (!plant) return
     const lastWatered = getLastWatered(plant)
     const now = Date.now()
+    // Intentionally wider than getDueState's 8h "fresh" window: a tap within
+    // 12h of the last drink is very likely a double-scan, so we confirm first.
     if (lastWatered !== null && now - lastWatered < 12 * 3_600_000) {
       const hoursAgo = Math.round(((now - lastWatered) / 3_600_000) * 10) / 10
       set({ pendingConfirm: { plantId, hoursAgo } })
@@ -766,7 +853,3 @@ export const useStore = create<AppStore>()((set, get) => ({
     return get().rooms.find(r => r.name === plant.room)?.light
   },
 }))
-
-// Legacy export alias for old call-sites — will be replaced screen-by-screen
-export const usePlantStore = useStore
-export const PlantRepository = Repository

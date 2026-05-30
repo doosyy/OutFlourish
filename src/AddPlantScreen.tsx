@@ -299,6 +299,7 @@ function SpeciesRow({ species, onSelect }: { species: SpeciesProfile; onSelect: 
             src={species.photo}
             alt={species.name}
             loading="lazy"
+            decoding="async"
             className="absolute inset-0 w-full h-full object-cover"
             onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
           />

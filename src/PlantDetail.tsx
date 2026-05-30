@@ -11,6 +11,7 @@ import {
   getDueLabel,
   getDueState,
   getHydrationScale,
+  getNextWateredDue,
   getLastWateredLabel,
   getTotalWaterMl,
   getWaterCount,
@@ -101,6 +102,10 @@ export default function PlantDetail() {
   const dueLabel = getDueLabel(plant, opts)
   const dueState = getDueState(plant, opts)
   const lastWateredGaugeLabel = getLastWatered(plant) === null ? undefined : getLastWateredLabel(plant)
+  // Long-overdue plants (>7 days) get a gentle "maybe more than water" nudge.
+  const daysOverdue = dueState === 'overdue'
+    ? Math.floor((Date.now() - getNextWateredDue(plant, opts)) / 86_400_000)
+    : 0
   const speciesDb = useSpeciesDb()
   const species = speciesDb && plant.speciesId ? speciesDb.getSpeciesById(plant.speciesId) : undefined
   const isLoadingSpecies = !!plant.speciesId && !speciesDb
@@ -122,6 +127,7 @@ export default function PlantDetail() {
             src={plant.photo}
             alt={plant.species ?? plant.name}
             loading="lazy"
+            decoding="async"
             onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
             className="absolute inset-0 w-full h-full object-cover"
             style={{ objectPosition: '50% 32%' }}
@@ -247,6 +253,27 @@ export default function PlantDetail() {
         <div className="mb-3.5">
           <MoistureGauge hydration={hydration} lastWateredLabel={lastWateredGaugeLabel} />
         </div>
+
+        {/* Long-overdue nudge */}
+        {daysOverdue > 7 && (
+          <div
+            className="flex items-start gap-2.5 mb-3.5"
+            style={{
+              padding: '12px 14px',
+              background: `${PCT.thirsty}10`,
+              border: `1px solid ${PCT.thirsty}33`,
+              borderRadius: 16,
+            }}
+          >
+            <TroubleGlyph color={PCT.thirsty} size={16} />
+            <div style={{
+              fontFamily: 'Newsreader, Georgia, serif',
+              fontSize: 13, lineHeight: 1.45, color: PCT.inkSoft,
+            }}>
+              {plant.name} may need more than water after {daysOverdue} days. Have a look at the troubles guide below.
+            </div>
+          </div>
+        )}
 
         {/* Sparkline */}
         <div className="mb-5.5">

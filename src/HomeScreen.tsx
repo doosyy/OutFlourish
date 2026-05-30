@@ -298,6 +298,8 @@ function ThirstyChip({ plant, onClick }: { plant: AugmentedPlant; onClick?: () =
           <img
             src={plant.photo}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 w-full h-full object-cover"
             onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
           />
@@ -313,6 +315,7 @@ function FeaturedPlant({ plant, onClick }: { plant: AugmentedPlant; onClick?: ()
   return (
     <button
       onClick={onClick}
+      aria-label={`${plant.name}${plant.species ? ', ' + plant.species : ''}. ${plant.dueState === 'overdue' ? 'Overdue' : 'Due soon'}, ${plant.due}.`}
       className="grid items-start w-full text-left"
       style={{
         gridTemplateColumns: '1fr 124px',
@@ -382,6 +385,7 @@ function AlmanacRow({ plant, highlight = false, onClick }: {
   return (
     <button
       onClick={onClick}
+      aria-label={`${plant.name}${plant.species ? ', ' + plant.species : ''}. ${plant.due}.`}
       className="grid items-center w-full text-left"
       style={{
         gridTemplateColumns: '52px 1fr auto',

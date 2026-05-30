@@ -9,6 +9,7 @@
 //   4.4–6.5s   Confirmed   — check badge + "Watered just now"
 
 import { useEffect } from 'react'
+import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { useStore, type Plant } from './store'
 import { PCT } from './tokens'
 import { NFCGlyph, DropGlyph, CheckGlyph } from './components/Glyphs'
@@ -30,6 +31,10 @@ export default function NfcMoment({ plant, onComplete, previewMode = false, amou
   const ml = amountMl ?? plant.recommendedMl
 
   useEffect(() => {
+    // Light tap the instant the plant is identified (~reveal phase).
+    const revealTimer = setTimeout(() => {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => { /* web */ })
+    }, 1400)
     // Trigger the actual watering during the 'watering' phase (skipped in preview)
     const waterTimer = previewMode ? null : setTimeout(() => {
       logWater(plant.id, 'water', { amountMl: ml })
@@ -37,6 +42,7 @@ export default function NfcMoment({ plant, onComplete, previewMode = false, amou
     // Auto-dismiss when the full cycle finishes
     const dismissTimer = setTimeout(onComplete, TOTAL_MS)
     return () => {
+      clearTimeout(revealTimer)
       if (waterTimer) clearTimeout(waterTimer)
       clearTimeout(dismissTimer)
     }

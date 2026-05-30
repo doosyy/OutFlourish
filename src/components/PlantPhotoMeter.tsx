@@ -70,6 +70,7 @@ const PlantPhotoMeter = React.memo(function PlantPhotoMeter({
           src={photo}
           alt={alt}
           loading="lazy"
+          decoding="async"
           onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
           style={{
             position: 'absolute',
