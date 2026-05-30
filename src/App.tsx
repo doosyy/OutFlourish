@@ -35,6 +35,31 @@ const lazyRoute = (node: React.ReactNode) => (
   <Suspense fallback={<RouteFallback />}>{node}</Suspense>
 )
 
+// Fixed cream band masking the status-bar safe area on scrolling cream screens.
+// On /plant/:id the hero photo runs full-bleed under the status bar, so it is
+// hidden there. Tracks hash changes to stay route-aware.
+function TopScrim() {
+  const [path, setPath] = useState(() => window.location.hash.replace(/^#/, ''))
+  useEffect(() => {
+    const onHash = () => setPath(window.location.hash.replace(/^#/, ''))
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+  if (path.startsWith('/plant/')) return null
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0,
+        height: 'max(56px, var(--sat))',
+        background: PCT.cream,
+        zIndex: 30,
+        pointerEvents: 'none',
+      }}
+    />
+  )
+}
+
 function parsePlantIdFromNdefPayload(payload: number[]): string | null {
   if (!payload || payload.length < 3) return null
   // NDEF Well Known Text record: first byte = status, bits 0-5 = language code length
@@ -217,6 +242,11 @@ export default function App() {
       <SwipeBackContainer canGoBack={canSwipeBack} onBack={goBack}>
         <RouterProvider router={router} />
       </SwipeBackContainer>
+
+      {/* Opaque cream band over the status-bar safe area so scrolled content
+          slides cleanly under the clock/battery instead of colliding with it.
+          Hidden on the plant detail route, whose hero photo is full-bleed. */}
+      <TopScrim />
 
       {/* Onboarding — first launch only */}
       {isLoaded && !settings.onboardingComplete && (
