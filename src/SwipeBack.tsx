@@ -30,7 +30,11 @@ export default function SwipeBackContainer({ canGoBack, onBack, children }: Prop
       el.style.transform = `translate3d(${Math.max(0, x)}px,0,0)`
       el.style.boxShadow = '-14px 0 36px rgba(58,30,18,0.20)'
     }
-    const clear = () => { el.style.transition = 'none'; el.style.transform = ''; el.style.boxShadow = '' }
+    // will-change is set only for the duration of a gesture. A *persistent*
+    // will-change:transform promotes the whole app to a compositing layer that
+    // some WKWebView builds (e.g. the iOS 26 simulator) fail to rasterize,
+    // leaving the screen blank. Promote on touch-start, drop it at rest.
+    const clear = () => { el.style.transition = 'none'; el.style.transform = ''; el.style.boxShadow = ''; el.style.willChange = 'auto' }
     const reset = () => { const c = s.current; c.active = false; c.decided = false; c.horizontal = false; c.dx = 0 }
 
     const onStart = (e: TouchEvent) => {
@@ -40,6 +44,7 @@ export default function SwipeBackContainer({ canGoBack, onBack, children }: Prop
       const c = s.current
       c.active = true; c.decided = false; c.horizontal = false
       c.startX = t.clientX; c.startY = t.clientY; c.dx = 0
+      el.style.willChange = 'transform' // promote only for this gesture
     }
     const onMove = (e: TouchEvent) => {
       const c = s.current
@@ -84,5 +89,5 @@ export default function SwipeBackContainer({ canGoBack, onBack, children }: Prop
     }
   }, [canGoBack, onBack])
 
-  return <div ref={ref} style={{ willChange: 'transform' }}>{children}</div>
+  return <div ref={ref}>{children}</div>
 }
