@@ -105,7 +105,7 @@ export default function HomeScreen() {
       paddingBottom: 140,
     }}>
       {/* Top bar */}
-      <div className="flex justify-between items-center px-5.5 pt-3">
+      <div className="flex justify-between items-center px-6 pt-3">
         <div>
           <div style={{
             fontFamily: 'ui-monospace, "SF Mono", monospace',
@@ -141,7 +141,7 @@ export default function HomeScreen() {
       {/* Section break + happy plants */}
       {happy.length > 0 && (
         <>
-          <div className="flex items-center gap-3.5" style={{ margin: '24px 28px 4px' }}>
+          <div className="flex items-center gap-3.5" style={{ margin: '24px 24px 4px' }}>
             <span style={{
               fontFamily: 'ui-monospace, "SF Mono", monospace',
               fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
@@ -157,7 +157,7 @@ export default function HomeScreen() {
 
       {/* If everyone is happy and nothing thirsty */}
       {thirsty.length === 0 && (
-        <div className="px-7 mt-8" style={{
+        <div className="px-6 mt-8" style={{
           fontFamily: '"DM Serif Display", Georgia, serif',
           fontStyle: 'italic', fontSize: 20, color: PCT.inkSoft, textAlign: 'center',
         }}>
@@ -166,7 +166,7 @@ export default function HomeScreen() {
       )}
 
       {/* Footer signoff */}
-      <div className="px-7 pt-7 text-center" style={{
+      <div className="px-6 pt-7 text-center" style={{
         fontFamily: '"DM Serif Display", Georgia, serif',
         fontStyle: 'italic', fontSize: 14, color: PCT.inkFaint,
         lineHeight: 1.6,
@@ -203,10 +203,10 @@ function SummaryWidget({ thirsty, onWaterAll }: { thirsty: AugmentedPlant[]; onW
     <div
       className="relative overflow-hidden"
       style={{
-        margin: '20px 22px 28px',
+        margin: '20px 24px 26px',
         padding: 22,
         background: PCT.terracotta,
-        borderRadius: 28,
+        borderRadius: 26,
         color: PCT.cream,
         boxShadow: '0 18px 40px rgba(165,78,38,0.32), inset 0 0 0 1px rgba(255,255,255,0.12)',
       }}
@@ -243,14 +243,29 @@ function SummaryWidget({ thirsty, onWaterAll }: { thirsty: AugmentedPlant[]; onW
           </div>
         )}
 
-        <div className="flex gap-2 mt-4.5">
-          <QuickAction
-            primary
-            icon={<DropGlyph color={PCT.terracottaDeep} size={14} />}
-            label="Water all"
+        {count > 0 && (
+          <button
             onClick={onWaterAll}
-          />
-        </div>
+            className="w-full flex items-center justify-center cursor-pointer"
+            style={{
+              marginTop: 16,
+              gap: 9,
+              padding: '13px',
+              background: PCT.cream,
+              color: PCT.terracottaDeep,
+              border: 'none',
+              borderRadius: 14,
+              boxShadow: '0 5px 12px rgba(0,0,0,0.13)',
+              fontFamily: '"DM Serif Display", Georgia, serif',
+              fontStyle: 'italic',
+              fontSize: 17,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <DropGlyph color={PCT.terracottaDeep} size={15} />
+            Water all {count}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -293,29 +308,6 @@ function ThirstyChip({ plant, onClick }: { plant: AugmentedPlant; onClick?: () =
   )
 }
 
-function QuickAction({ icon, label, primary, onClick }: {
-  icon: React.ReactNode; label: string; primary?: boolean; onClick?: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex-1 flex items-center justify-center gap-2 rounded-card-s cursor-pointer"
-      style={{
-        padding: '10px 8px',
-        background: primary ? PCT.cream : 'rgba(255,255,255,0.16)',
-        color: primary ? PCT.terracottaDeep : PCT.cream,
-        boxShadow: primary
-          ? '0 4px 10px rgba(0,0,0,0.12)'
-          : 'inset 0 0 0 1px rgba(255,255,255,0.2)',
-        fontFamily: 'Newsreader, Georgia, serif',
-        fontWeight: 600, fontSize: 13,
-      }}
-    >
-      {icon}{label}
-    </button>
-  )
-}
-
 // ─── Featured plant — most urgent ────────────────────────────────────────────
 function FeaturedPlant({ plant, onClick }: { plant: AugmentedPlant; onClick?: () => void }) {
   return (
@@ -325,11 +317,11 @@ function FeaturedPlant({ plant, onClick }: { plant: AugmentedPlant; onClick?: ()
       style={{
         gridTemplateColumns: '1fr 124px',
         gap: 18,
-        margin: '0 28px 8px',
+        margin: '0 24px 8px',
         padding: '18px 0',
         borderTop: `1px solid ${PCT.ink}22`,
         borderBottom: `1px solid ${PCT.ink}22`,
-        width: 'calc(100% - 56px)',
+        width: 'calc(100% - 48px)',
       }}
     >
       <div className="min-w-0">
@@ -369,6 +361,7 @@ function FeaturedPlant({ plant, onClick }: { plant: AugmentedPlant; onClick?: ()
           alt={plant.species ?? plant.name}
           hydration={plant.hydration}
           size={124}
+          objectPosition="50% 28%"
         />
         <div style={{
           fontFamily: '"DM Serif Display", Georgia, serif',
@@ -393,7 +386,7 @@ function AlmanacRow({ plant, highlight = false, onClick }: {
       style={{
         gridTemplateColumns: '52px 1fr auto',
         gap: 14,
-        padding: '14px 28px',
+        padding: '14px 24px',
         borderBottom: `1px solid ${PCT.ink}14`,
         background: highlight ? `${PCT.terracottaSoft}33` : 'transparent',
       }}
@@ -403,28 +396,18 @@ function AlmanacRow({ plant, highlight = false, onClick }: {
         alt={plant.species ?? plant.name}
         hydration={plant.hydration}
         size={52}
+        objectPosition="50% 30%"
       />
       <div className="min-w-0">
         <div className="truncate" style={{
           fontFamily: '"DM Serif Display", Georgia, serif',
-          fontSize: 22, lineHeight: 1.0, color: PCT.ink,
+          fontSize: 22, lineHeight: 1.05, color: PCT.ink,
         }}>{plant.name}</div>
-        {plant.mood && (
-          <div className="mt-1 truncate" style={{
-            fontFamily: '"DM Serif Display", Georgia, serif',
-            fontStyle: 'italic', fontSize: 13, color, lineHeight: 1.35,
-            maxWidth: 200,
-          }}>
-            “{plant.mood}”
-          </div>
-        )}
-        <div className="mt-1" style={{
-          fontFamily: 'ui-monospace, "SF Mono", monospace',
-          fontSize: 9, letterSpacing: 1.5, color: PCT.inkFaint,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {plant.species ?? 'Unknown species'} · {plant.room ?? 'Unsited'} · {Math.round(plant.hydration * 100)}%
-        </div>
+        <div className="mt-0.5 truncate" style={{
+          fontFamily: '"DM Serif Display", Georgia, serif',
+          fontStyle: 'italic', fontSize: 13.5,
+          color: PCT.inkFaint, lineHeight: 1.3,
+        }}>{plant.species ?? 'Unknown species'}</div>
       </div>
       <div className="text-right flex flex-col gap-0.5">
         <span style={{

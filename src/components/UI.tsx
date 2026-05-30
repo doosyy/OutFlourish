@@ -86,16 +86,7 @@ export function AccordionRow({ icon, title, body, defaultOpen = false }: Accordi
         >
           {title}
         </span>
-        <span
-          style={{
-            fontFamily: '"DM Serif Display", Georgia, serif',
-            fontStyle: 'italic',
-            fontSize: 14,
-            color: PCT.inkFaint,
-          }}
-        >
-          {open ? '— close' : 'read'}
-        </span>
+        <ChevronGlyph color={PCT.inkFaint} size={15} direction={open ? 'up' : 'down'} />
       </button>
       {open && (
         <div

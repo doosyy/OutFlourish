@@ -25,10 +25,13 @@ interface Props {
   ring?: boolean
   /** bump to re-trigger the rise animation (e.g. after a watering) */
   animateKey?: string | number
+  /** CSS object-position for the photo; crop studio shots toward foliage */
+  objectPosition?: string
 }
 
 const PlantPhotoMeter = React.memo(function PlantPhotoMeter({
   photo, alt = '', hydration, size = 80, ring = true, animateKey = 0,
+  objectPosition = '50% 50%',
 }: Props) {
   const h = Math.max(0, Math.min(1, hydration))
   const accent = accentFor(h)
@@ -74,6 +77,7 @@ const PlantPhotoMeter = React.memo(function PlantPhotoMeter({
             width: '100%',
             height: '100%',
             objectFit: 'cover',
+            objectPosition,
           }}
         />
       )}

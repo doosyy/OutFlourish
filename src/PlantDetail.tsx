@@ -11,7 +11,6 @@ import {
   getDueLabel,
   getDueState,
   getHydrationScale,
-  getMoistureLabel,
   getLastWateredLabel,
   getTotalWaterMl,
   getWaterCount,
@@ -23,7 +22,7 @@ import { PCT, accentFor } from './tokens'
 import { useSpeciesDb, getCachedSpeciesDb } from './speciesLoader'
 import type { SpeciesProfile } from './speciesDb'
 import PairTagOverlay from './PairTagOverlay'
-import PlantPhotoMeter from './components/PlantPhotoMeter'
+import MoistureGauge from './components/MoistureGauge'
 import HydrationSparkline from './components/HydrationSparkline'
 import { AccordionRow, GlassCircle, FormField } from './components/UI'
 import PhotoPicker from './components/PhotoPicker'
@@ -45,6 +44,8 @@ const LOG_LABEL: Record<WaterLog['type'], string> = {
   fertilize: 'Fertilised',
   repot: 'Repotted',
 }
+
+const GUT = 24 // single consistent content gutter
 
 export default function PlantDetail() {
   const { id } = useParams<{ id: string }>()
@@ -99,6 +100,7 @@ export default function PlantDetail() {
   const accent = accentFor(hydration)
   const dueLabel = getDueLabel(plant, opts)
   const dueState = getDueState(plant, opts)
+  const lastWateredGaugeLabel = getLastWatered(plant) === null ? undefined : getLastWateredLabel(plant)
   const speciesDb = useSpeciesDb()
   const species = speciesDb && plant.speciesId ? speciesDb.getSpeciesById(plant.speciesId) : undefined
   const isLoadingSpecies = !!plant.speciesId && !speciesDb
@@ -122,6 +124,7 @@ export default function PlantDetail() {
             loading="lazy"
             onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: '50% 32%' }}
           />
         )}
         {/* top legibility gradient */}
@@ -137,24 +140,42 @@ export default function PlantDetail() {
           <GlassCircle onClick={() => navigate(-1)} ariaLabel="Back">
             <ChevronGlyph color={PCT.cream} size={18} />
           </GlassCircle>
-          <div
-            className="inline-flex items-center gap-2"
-            style={{
-              padding: '7px 14px 7px 10px',
-              background: 'rgba(255,251,243,0.92)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              borderRadius: 999,
-              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.5), 0 4px 14px rgba(0,0,0,0.18)',
-              color: accent,
-              fontFamily: '"DM Serif Display", Georgia, serif',
-              fontStyle: 'italic',
-              fontSize: 13,
-            }}
-          >
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent }} />
-            {dueLabel}
-          </div>
+          {dueState === 'overdue' ? (
+            <div
+              className="inline-flex items-center gap-2"
+              style={{
+                padding: '7px 14px 7px 11px',
+                background: PCT.thirsty,
+                borderRadius: 999,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                color: PCT.cream,
+                fontFamily: 'ui-monospace, "SF Mono", monospace',
+                fontSize: 9, letterSpacing: 1.4, textTransform: 'uppercase',
+              }}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: PCT.cream }} />
+              {dueLabel}
+            </div>
+          ) : (
+            <div
+              className="inline-flex items-center gap-2"
+              style={{
+                padding: '7px 14px 7px 10px',
+                background: 'rgba(255,251,243,0.92)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                borderRadius: 999,
+                boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.5), 0 4px 14px rgba(0,0,0,0.18)',
+                color: accent,
+                fontFamily: '"DM Serif Display", Georgia, serif',
+                fontStyle: 'italic',
+                fontSize: 13,
+              }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent }} />
+              {dueLabel}
+            </div>
+          )}
           {/* Spacer keeps the status pill centred (Edit lives lower on the page). */}
           <div style={{ width: 36, height: 36, flexShrink: 0 }} aria-hidden />
         </div>
@@ -162,71 +183,13 @@ export default function PlantDetail() {
 
       {/* ── OVERLAPPING CREAM SHEET ────────────────────────────────────── */}
       <div className="relative" style={{
-        marginTop: -36,
+        marginTop: -28,
         background: PCT.cream,
-        borderTopLeftRadius: 36,
-        borderTopRightRadius: 36,
-        padding: '24px 22px 8px',
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        padding: `26px ${GUT}px 8px`,
         boxShadow: '0 -10px 30px rgba(58,30,18,0.08)',
       }}>
-        {/* Giant moisture meter, overlapping into the photo */}
-        <div className="flex justify-center relative" style={{ marginTop: -84, marginBottom: 12, zIndex: 2 }}>
-          <div
-            className={dueState === 'overdue' ? 'animate-breathe' : undefined}
-            style={{
-              background: PCT.cream,
-              borderRadius: '50%',
-              padding: 6,
-              boxShadow: dueState === 'overdue'
-                ? `0 12px 28px rgba(58,30,18,0.18), 0 0 0 3px ${PCT.thirsty}, 0 0 0 8px ${PCT.thirsty}22`
-                : dueState === 'soon'
-                ? `0 12px 28px rgba(58,30,18,0.18), 0 0 0 2px ${PCT.soon}, 0 0 0 6px ${PCT.soon}1c`
-                : '0 12px 28px rgba(58,30,18,0.18)',
-              position: 'relative',
-            }}
-          >
-            <PlantPhotoMeter
-              photo={plant.photo}
-              alt={plant.species ?? plant.name}
-              hydration={hydration}
-              size={148}
-              ring={false}
-            />
-            {dueState === 'overdue' && (
-              <div
-                className="absolute inline-flex items-center gap-1.5 animate-overdue-badge"
-                style={{
-                  top: -10, right: -10,
-                  padding: '5px 12px 5px 10px',
-                  background: PCT.thirsty, color: PCT.cream,
-                  borderRadius: 999,
-                  boxShadow: '0 6px 14px rgba(0,0,0,0.18)',
-                  fontFamily: 'ui-monospace, "SF Mono", monospace',
-                  fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase',
-                }}
-              >
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: PCT.cream }} />
-                Overdue
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Hydration label */}
-        <div className="text-center mb-4.5">
-          <div style={{
-            fontFamily: 'ui-monospace, "SF Mono", monospace',
-            fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
-            color: accent, marginBottom: 4,
-          }}>Soil moisture</div>
-          <div style={{
-            fontFamily: '"DM Serif Display", Georgia, serif',
-            fontStyle: 'italic', fontSize: 22, color: PCT.ink,
-          }}>
-            {getMoistureLabel(hydration)} · {Math.round(hydration * 100)}%
-          </div>
-        </div>
-
         {/* Name + species */}
         <div className="text-center mb-1.5">
           <h1 style={{
@@ -280,6 +243,11 @@ export default function PlantDetail() {
           </div>
         )}
 
+        {/* Moisture instrument — a gauge, not a second portrait */}
+        <div className="mb-3.5">
+          <MoistureGauge hydration={hydration} lastWateredLabel={lastWateredGaugeLabel} />
+        </div>
+
         {/* Sparkline */}
         <div className="mb-5.5">
           <div style={{
@@ -291,8 +259,8 @@ export default function PlantDetail() {
             intervalDays={plant.baseIntervalDays} />
         </div>
 
-        {/* Vitals 2x2 */}
-        <div className="grid grid-cols-2 gap-2 mb-4.5">
+        {/* Vitals — consistent number-over-unit, 1×3 */}
+        <div className="grid grid-cols-3 gap-2 mb-4.5">
           {(() => {
             const last = getLastWatered(plant)
             if (last === null) return <VitalCard label="Last watered" value="Never" />
@@ -302,13 +270,10 @@ export default function PlantDetail() {
               value={hasAgo ? raw.replace(' ago', '') : raw}
               subtle={hasAgo ? 'ago' : undefined} />
           })()}
-          <VitalCard label="Next due"
-            value={dueLabel.replace('Due in ', '').replace('Due ', '')}
-            accent={accent} />
-          <VitalCard label="Per drink" value={String(plant.recommendedMl)} subtle="ml" />
+          <VitalCard label="Per drink" value={String(plant.recommendedMl)} subtle="ml / drink" />
           <VitalCard label="All time"
             value={(getTotalWaterMl(plant) / 1000).toFixed(1)}
-            subtle="L given" />
+            subtle="litres" />
         </div>
 
         {/* Edit form (inline collapsible) */}
@@ -334,18 +299,19 @@ export default function PlantDetail() {
           onContextMenu={e => e.preventDefault()}
           className="w-full flex items-center justify-center gap-3 select-none"
           style={{
-            padding: '18px 22px',
+            padding: '17px 22px',
             background: PCT.terracotta,
             color: PCT.cream,
-            borderRadius: 22,
+            borderRadius: 20,
             fontFamily: '"DM Serif Display", Georgia, serif',
-            fontSize: 22, fontStyle: 'italic',
-            boxShadow: '0 12px 28px rgba(165,78,38,0.32), inset 0 1px 0 rgba(255,255,255,0.18)',
+            fontSize: 21, fontStyle: 'italic',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 12px 26px rgba(165,78,38,0.3), inset 0 1px 0 rgba(255,255,255,0.18)',
             touchAction: 'manipulation',
           }}
         >
           <DropGlyph color={PCT.cream} size={18} />
-          Water {plant.name} · {plant.recommendedMl} ml
+          Water · {plant.recommendedMl} ml
         </button>
         <div className="text-center mt-2" style={{
           fontFamily: 'ui-monospace, "SF Mono", monospace',
@@ -393,15 +359,10 @@ export default function PlantDetail() {
 
         {/* Diary */}
         <div className="mt-9">
-          <div style={{
-            fontFamily: 'ui-monospace, "SF Mono", monospace',
-            fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
-            color: PCT.terracotta, marginBottom: 6,
-          }}>The diary</div>
           <div className="mb-3.5" style={{
             fontFamily: '"DM Serif Display", Georgia, serif',
             fontSize: 28, lineHeight: 1.0, color: PCT.ink,
-          }}>Every drink, fed, & repot</div>
+          }}>The diary</div>
           <DiaryTimeline plant={plant} />
         </div>
 
@@ -467,11 +428,6 @@ function CareGuideSection({ species, plant }: { species: SpeciesProfile; plant: 
 
   return (
     <div className="mt-9">
-      <div style={{
-        fontFamily: 'ui-monospace, "SF Mono", monospace',
-        fontSize: 10, letterSpacing: '0.30em', textTransform: 'uppercase',
-        color: PCT.terracotta, marginBottom: 6,
-      }}>The care guide</div>
       <div className="mb-3" style={{
         fontFamily: '"DM Serif Display", Georgia, serif',
         fontSize: 28, lineHeight: 1.0, color: PCT.ink,
@@ -590,12 +546,7 @@ function NfcAccordionRow({ plant }: { plant: Plant }) {
             }}>· synced</span>
           )}
         </span>
-        <span style={{
-          fontFamily: '"DM Serif Display", Georgia, serif',
-          fontStyle: 'italic', fontSize: 14, color: PCT.inkFaint,
-        }}>
-          {open ? '— close' : 'open'}
-        </span>
+        <ChevronGlyph color={PCT.inkFaint} size={15} direction={open ? 'up' : 'down'} />
       </button>
       {open && (
         <div style={{ padding: '0 4px 18px 40px' }}>
@@ -695,26 +646,27 @@ function VitalCard({ label, value, subtle, accent }: {
 }) {
   return (
     <div style={{
-      padding: '12px 12px 14px',
-      background: PCT.paper,
-      border: `1px solid ${PCT.ink}12`,
+      padding: '13px 10px',
+      background: 'rgba(255,255,255,0.55)',
+      border: `1px solid ${PCT.ink}10`,
       borderRadius: 16,
       textAlign: 'center',
     }}>
       <div style={{
         fontFamily: 'ui-monospace, "SF Mono", monospace',
-        fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase',
-        color: PCT.inkFaint, marginBottom: 6,
+        fontSize: 8.5, letterSpacing: 1.4, textTransform: 'uppercase',
+        color: PCT.inkFaint, marginBottom: 7,
       }}>{label}</div>
       <div style={{
         fontFamily: '"DM Serif Display", Georgia, serif',
-        fontSize: 22, lineHeight: 1.0,
+        fontSize: 27, lineHeight: 0.95,
         color: accent ?? PCT.ink,
       }}>{value}</div>
       {subtle && (
-        <div className="mt-1" style={{
+        <div style={{
+          marginTop: 3,
           fontFamily: '"DM Serif Display", Georgia, serif',
-          fontStyle: 'italic', fontSize: 11.5, color: PCT.inkFaint,
+          fontStyle: 'italic', fontSize: 12, color: PCT.inkFaint,
         }}>{subtle}</div>
       )}
     </div>
